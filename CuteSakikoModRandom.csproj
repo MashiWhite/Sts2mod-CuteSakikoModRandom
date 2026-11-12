@@ -1,0 +1,78 @@
+<Project Sdk="Godot.NET.Sdk/4.5.1">
+    <PropertyGroup>
+        <!-- 基础框架 -->
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>true</ImplicitUsings>
+        <LangVersion>13.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- 改成你的杀戮尖塔2目录（注意路径中的斜杠统一） -->
+        <Sts2Dir>E:/SteamLibrary/steamapps/common/Slay the Spire 2</Sts2Dir>
+        <Sts2DataDir>$(Sts2Dir)/data_sts2_windows_x86_64</Sts2DataDir>
+
+        <!-- 工坊里的 AutoAnthony 0.3.156（比 GitHub 公开仓库新，以这份为准） -->
+        <AutoAnthonyDir>E:/SteamLibrary/steamapps/workshop/content/2868840/3786611028</AutoAnthonyDir>
+
+        <!-- 添加 Godot 可执行文件路径 -->
+        <GodotPath>E:/SLJT2/anti/GODOT/Godot_v4.5.1-stable_mono_win64.exe</GodotPath>
+
+        <!-- 模组输出目录 -->
+        <ModsPath>$(Sts2Dir)/mods/</ModsPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="sts2">
+            <HintPath>$(Sts2DataDir)\sts2.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="GodotSharp">
+            <HintPath>$(Sts2DataDir)\GodotSharp.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="0Harmony">
+            <HintPath>$(Sts2DataDir)\0Harmony.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <!-- AutoAnthony 本体（工坊目录；0.3.156） -->
+        <Reference Include="AutoAnthony">
+            <HintPath>$(AutoAnthonyDir)\AutoAnthony.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <!-- 可爱小祥本体（角色/卡池/关键词类型都从这里读） -->
+        <Reference Include="CuteSakikoMod">
+            <HintPath>$(ModsPath)\CuteSakikoMod\CuteSakikoMod.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+
+        <Reference Include="STS2-RitsuLib">
+            <HintPath>$(ModsPath)\RitsuLib\STS2-RitsuLib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="STS2.RitsuLib" Version="0.6.7" />
+    </ItemGroup>
+
+    <!-- 自动复制 dll 和 json -->
+    <Target Name="CopyMod" AfterTargets="Build">
+        <Message Text="Copying mod DLL and JSON to $(ModsPath)" Importance="high" />
+        <MakeDir Directories="$(ModsPath)$(MSBuildProjectName)" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(MSBuildProjectName)" />
+        <Copy SourceFiles="$(MSBuildProjectName).json" DestinationFolder="$(ModsPath)$(MSBuildProjectName)" />
+    </Target>
+
+    <Target Name="BuildPck" AfterTargets="Build"
+            Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">
+        <Message Text="Exporting Godot .pck to mods folder (from Build)" Importance="high"/>
+        <Exec Command="&quot;$(GodotPath)&quot; --headless --export-pack &quot;Random&quot; &quot;$(ModsPath)$(MSBuildProjectName)/$(MSBuildProjectName).pck&quot;"
+              WorkingDirectory="$(MSBuildProjectDirectory)"
+              EnvironmentVariables="IsInnerGodotExport=true;MSBUILDDISABLENODEREUSE=1"
+              ContinueOnError="WarnAndContinue" />
+    </Target>
+</Project>

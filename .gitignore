@@ -1,0 +1,15 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# IDE / local user settings
+.idea/
+.vscode/
+*.suo
+*.user
+*.sln.DotSettings.user
+
+# build artifacts (real builds deploy to the game mods folder)
+bin/
+obj/
+.build-check/
