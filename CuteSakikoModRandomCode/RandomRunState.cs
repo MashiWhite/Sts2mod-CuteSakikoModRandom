@@ -173,13 +173,51 @@ internal static class RandomRunState
 
 
         var definitions = RandomDefinitionBuilder.Build(profileId, seed);
+        // 验收日志：本次生成里「非 Power 卡上的永久 power」被 AA 整卡预算按 ×1.5 计价的次数。
+        MegaCrit.Sts2.Core.Logging.Log.Info(
+            $"[AA预算] {profileId} 生成期间永久 power ×1.5 计价触发 {AaGenerationValuePatch.TakeFires()} 次");
         ExternalComponentCharacterApi.InstallDefinitions(profileId, definitions);
+        var fingerprint = DefinitionFingerprint(definitions);
+        // 保留一行指纹：联机出现不同步时，两端日志一对比就能判断「卡池生成是否一致」。
+        MegaCrit.Sts2.Core.Logging.Log.Info(
+            $"[定义指纹] {profileId} cards={definitions.Count} fingerprint={fingerprint} seed={seed}");
         lock (Gate)
         {
             Installed[profileId] = definitions;
             InstalledSeed[profileId] = seed;
         }
         return definitions;
+    }
+
+    /// <summary>
+    /// 定义内容指纹：同一种子下两端必须一致；不一致 = 生成里有非确定随机源
+    /// （当前已知嫌疑：RandomDefinitionBuilder 多处 Random.Shared）。
+    /// </summary>
+    private static string DefinitionFingerprint(IReadOnlyList<ChaosCardDefinition> definitions)
+    {
+        try
+        {
+            var builder = new System.Text.StringBuilder();
+            foreach (var definition in definitions)
+            {
+                var card = definition.Card;
+                builder.Append(definition.Slot).Append('|')
+                    .Append(card.Name?.Chinese).Append('|')
+                    .Append(card.Cost).Append('|')
+                    .Append(card.Rarity).Append('|');
+                foreach (var operation in card.Operations)
+                    builder.Append(operation.Template).Append(':').Append(operation.Scope).Append(',');
+                builder.Append(';');
+            }
+
+            var hash = System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(builder.ToString()));
+            return Convert.ToHexString(hash)[..16];
+        }
+        catch (Exception exception)
+        {
+            return "hash-error:" + exception.GetType().Name;
+        }
     }
 
     /// <summary>

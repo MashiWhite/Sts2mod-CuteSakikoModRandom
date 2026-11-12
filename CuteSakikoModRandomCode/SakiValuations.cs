@@ -22,7 +22,32 @@ internal static class SakiValuations
     private const double PressureUnit = 150d;
 
     /// <summary>所有自定义 opcode 的估值路由（按 opcode+variant；变体精确优先于通配）。</summary>
-    internal static IReadOnlyList<ComponentValuationRegistration> All() => Raw();
+    internal static IReadOnlyList<ComponentValuationRegistration> All() => _cached ??= Raw();
+
+    private static IReadOnlyList<ComponentValuationRegistration>? _cached;
+
+    /// <summary>
+    /// 按我们注册给 AA 的估值表，给一个 RuntimeSpec 估值（AA 单位：100 = 1 点普通单体伤害）。
+    /// 用于把「永久 power 在非 Power 卡上 ×1.5」同步进 AA 的整卡预算模型。
+    /// </summary>
+    internal static int EstimateFor(OperationRuntimeSpec spec)
+    {
+        var registrations = All();
+        var registration = registrations.FirstOrDefault(route =>
+                               route.Opcode == spec.Opcode && route.Variant == spec.Variant)
+                           ?? registrations.FirstOrDefault(route =>
+                               route.Opcode == spec.Opcode && route.Variant.Length == 0);
+        if (registration is null) return 0;
+        try
+        {
+            return registration.Valuation.Estimate(
+                new ComponentValuationContext(string.Empty, OperationScope.NonTargeted, spec));
+        }
+        catch
+        {
+            return 0;
+        }
+    }
 
     private static IReadOnlyList<ComponentValuationRegistration> Raw() =>
     [

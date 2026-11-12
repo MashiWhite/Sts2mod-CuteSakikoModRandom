@@ -256,7 +256,7 @@ internal sealed class ForgetHandler : IComponentRuntimeHandler
         // 随机型：随机挑 N 张，不弹界面。
         var selected = hand.Count <= count
             ? hand
-            : hand.OrderBy(_ => Random.Shared.Next()).Take(count).ToList();
+            : SakiRuntimeRng.PickRandom(hand, count, SakiRuntimeRng.CardSelection(context));
         await MemoryCmd.Forget(context.ChoiceContext, selected, context.Card);
         return true;
     }
@@ -303,7 +303,7 @@ internal sealed class PlayChordHandler : IComponentRuntimeHandler
             var grant = Math.Max(1, count);
             for (var i = 0; i < grant && all.Count > 0; i++)
             {
-                var chordId = all[Random.Shared.Next(all.Count)];
+                var chordId = all[SakiRuntimeRng.CardSelection(context).NextInt(all.Count)];
                 all.Remove(chordId);
                 if (chords.GetTemporaryChords().Contains(chordId))
                     await ChordNoteSystem.PlayChordAsync(owner, chordId, context.ChoiceContext);
@@ -627,7 +627,7 @@ internal sealed class DeckHandler : IComponentRuntimeHandler
             var handPool = hand.Cards.ToList();
             for (var i = 0; i < takeCount && handPool.Count > 0; i++)
             {
-                var index4 = Random.Shared.Next(handPool.Count);
+                var index4 = SakiRuntimeRng.CardSelection(context).NextInt(handPool.Count);
                 var picked4 = handPool[index4];
                 handPool.RemoveAt(index4);
                 await CardCmd.AutoPlay(context.ChoiceContext, picked4, context.CardPlay.Target);
@@ -717,7 +717,7 @@ internal sealed class DeckHandler : IComponentRuntimeHandler
             var pool2 = drawPile2.Cards.ToList();
             for (var i = 0; i < playN && pool2.Count > 0; i++)
             {
-                var index3 = Random.Shared.Next(pool2.Count);
+                var index3 = SakiRuntimeRng.CardSelection(context).NextInt(pool2.Count);
                 var picked3 = pool2[index3];
                 pool2.RemoveAt(index3);
                 await CardCmd.AutoPlay(context.ChoiceContext, picked3, context.CardPlay.Target);
@@ -768,7 +768,7 @@ internal sealed class DeckHandler : IComponentRuntimeHandler
             var removeCount = Math.Max(1, context.Amount);
             for (var i = 0; i < removeCount && debuffs.Count > 0; i++)
             {
-                var index = Random.Shared.Next(debuffs.Count);
+                var index = SakiRuntimeRng.CardSelection(context).NextInt(debuffs.Count);
                 var target = debuffs[index];
                 debuffs.RemoveAt(index);
                 await PowerCmd.Remove(target);
@@ -784,7 +784,7 @@ internal sealed class DeckHandler : IComponentRuntimeHandler
             var pool = hand.Cards.ToList();
             for (var i = 0; i < playCount && pool.Count > 0; i++)
             {
-                var index = Random.Shared.Next(pool.Count);
+                var index = SakiRuntimeRng.CardSelection(context).NextInt(pool.Count);
                 var picked = pool[index];
                 pool.RemoveAt(index);
                 await CardCmd.AutoPlay(context.ChoiceContext, picked, context.CardPlay.Target);
@@ -847,9 +847,10 @@ internal static class CollapseHelper
 
         await PressureCmd.Apply(context.ChoiceContext, creature, current, creature, context.Card);
 
-        return hasMask
+        var triggered = hasMask
             ? current * 2 >= preHp
             : (creature.GetPower<BreakDownPower>()?.Amount ?? 0) > before;
+        return triggered;
     }
 }
 
@@ -869,11 +870,10 @@ internal sealed class CostHandler : IComponentRuntimeHandler
         if (hand is null) return true;
 
         var count = Math.Max(1, context.Amount);
-        var candidates = hand.Cards
+        var candidatePool = hand.Cards
             .Where(card => card != context.Card)
-            .OrderBy(_ => Random.Shared.Next())
-            .Take(count)
             .ToList();
+        var candidates = SakiRuntimeRng.PickRandom(candidatePool, count, SakiRuntimeRng.CardSelection(context));
 
         if (context.RuntimeSpec.Variant == SakiComponents.CostFreeHandVariant)
         {
@@ -956,7 +956,7 @@ internal sealed class GrowthHandler : IComponentRuntimeHandler
         if (target is null)
         {
             var enemies = creature.CombatState?.HittableEnemies?.ToArray() ?? [];
-            if (enemies.Length > 0) target = enemies[Random.Shared.Next(enemies.Length)];
+            if (enemies.Length > 0) target = enemies[SakiRuntimeRng.Targets(context).NextInt(enemies.Length)];
         }
         await DamageCmd.Attack(damage)
             .FromCard(context.Card, context.CardPlay)
@@ -1161,7 +1161,7 @@ internal sealed class ConditionHandler : IComponentRuntimeHandler
                                                          or ChaosCardGenerator.ComponentCategory.Defense)
                             .ToList();
                         if (buffs.Count == 0) return true;
-                        var pick = buffs[Random.Shared.Next(buffs.Count)];
+                        var pick = buffs[SakiRuntimeRng.CardSelection(context).NextInt(buffs.Count)];
                         var powerType = ModPowerHandler.Resolve(RandomProfiles.Saki, pick.Variant);
                         if (powerType is null) return true;
                         await ModPowerHandler.ApplyByTypeAsync(powerType, context.ChoiceContext, creature, context.Card, stacks);
@@ -1793,7 +1793,7 @@ internal sealed class TokenCardHandler : IComponentRuntimeHandler
                 await CardPileCmd.Add([cat], PileType.Exhaust);
                 var enemies = combat.HittableEnemies.ToArray();
                 if (enemies.Length == 0) break;
-                var target = enemies[Random.Shared.Next(enemies.Length)];
+                var target = enemies[SakiRuntimeRng.Targets(context).NextInt(enemies.Length)];
                 await DamageCmd.Attack(damage)
                     .FromCard(context.Card, context.CardPlay)
                     .Targeting(target)
@@ -1921,7 +1921,7 @@ internal sealed class TokenCardHandler : IComponentRuntimeHandler
             var playAny = Math.Max(1, context.Amount);
             for (var i = 0; i < playAny && anywhere.Count > 0; i++)
             {
-                var index2 = Random.Shared.Next(anywhere.Count);
+                var index2 = SakiRuntimeRng.CardSelection(context).NextInt(anywhere.Count);
                 var picked2 = anywhere[index2];
                 anywhere.RemoveAt(index2);
                 await CardCmd.AutoPlay(context.ChoiceContext, picked2, context.CardPlay.Target);
@@ -1939,7 +1939,7 @@ internal sealed class TokenCardHandler : IComponentRuntimeHandler
             var cats = drawPile.Cards.Where(card => card.Keywords.Contains(nekoKw)).ToList();
             for (var i = 0; i < playCount && cats.Count > 0; i++)
             {
-                var index = Random.Shared.Next(cats.Count);
+                var index = SakiRuntimeRng.CardSelection(context).NextInt(cats.Count);
                 var picked = cats[index];
                 cats.RemoveAt(index);
                 await CardCmd.AutoPlay(context.ChoiceContext, picked, context.CardPlay.Target);

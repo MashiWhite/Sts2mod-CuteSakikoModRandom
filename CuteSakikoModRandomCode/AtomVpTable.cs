@@ -28,12 +28,33 @@ internal static class AtomVpTable
     private const double Forget = 1.5;
     private const double Live = 0.4;
     private const double PowerLayer = 1.5;
+    /// <summary>本回合型 power（本回合力量/敏捷/活力）每层 VP；不吃「非 Power 卡 ×1.5」。</summary>
+    private const double TempPowerLayer = 0.8;
     private const double ChordPlay = 2.75;
     private const double NoteAttack = 2.0;     // 4 伤
     private const double NoteSkill = 3.0;      // 3 挡
     private const double NotePower = 2.75;     // 抽 1
     private const double NoteSpecial = 5.75;   // 1 能量
     private const double Aoe = 1.3;
+
+    /// <summary>
+    /// 永久性 power（力量 / 敏捷 / 覆甲，以及本模组的 csk_power 能力）：
+    /// 落在**非 Power 卡**上时 VP ×1.5（2026-11-12 用户规则）。
+    /// 本回合型（N:TempStrength 等）不算永久，VP 不变。
+    /// </summary>
+    internal static bool IsPermanentPower(OperationRuntimeSpec spec) => spec.Opcode switch
+    {
+        "apply_power" => spec.Variant is "strength" or "dexterity_gain" or "plating",
+        "csk_power" => true,
+        _ => false
+    };
+
+    /// <summary>本回合型 power：VP 不乘 1.5。</summary>
+    internal static bool IsTemporaryPower(OperationRuntimeSpec spec) => spec.Opcode switch
+    {
+        "apply_power" => spec.Variant is "strength_this_turn" or "dexterity_this_turn" or "vigor",
+        _ => false
+    };
 
     /// <summary>一个原子的净 VP（不含费用；费用由整卡目标带负责）。</summary>
     internal static double Vp(OperationRuntimeSpec spec)
@@ -67,6 +88,15 @@ internal static class AtomVpTable
         // N:Heal 的槽位是 amount（不是 heal）；I:GainMaxHp 也是 amount。
         if (spec.Opcode == "heal") return V("amount") * Heal;
         if (spec.Opcode == "gain_max_hp") return V("amount") * 3.0;
+        // 原生 power：槽位统一是 amount。
+        //   永久（力量/敏捷/覆甲）按 PowerLayer 计价；本回合型按 TempPowerLayer 计价。
+        //   「非 Power 卡 ×1.5」在 CardValuator 里按整卡类型应用（这里不知道卡类型）。
+        if (spec.Opcode == "apply_power")
+        {
+            var amount = V("amount");
+            if (IsPermanentPower(spec)) return amount * PowerLayer;
+            if (IsTemporaryPower(spec)) return amount * TempPowerLayer;
+        }
         var gold = V("gold");
         if (gold > 0) return gold * Gold;
         return 0d;

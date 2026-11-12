@@ -41,6 +41,9 @@ public class Entry
         // 初始牌随机补丁：手动安装，逐个角色 try/catch（见 RandomStartingDeckPatch 的注释）
         try { RandomStartingDeckPatch.Install(Harmony); }
         catch (Exception exception) { Log.Error($"[CuteSakikoModRandom] 初始牌随机补丁安装失败：{exception}"); }
+        // 把「永久 power 在非 Power 卡上 ×1.5」同步进 AA 的整卡预算（生成阶段就计价）
+        try { AaGenerationValuePatch.Install(Harmony); }
+        catch (Exception exception) { Log.Error($"[CuteSakikoModRandom] AA 整卡预算补丁安装失败：{exception}"); }
         // 设置页与主机权威快照（必须在生成之前注册）
         try { RandomConfig.Register(); }
         catch (Exception exception) { Log.Error($"[CuteSakikoModRandom] 设置页注册失败：{exception}"); }

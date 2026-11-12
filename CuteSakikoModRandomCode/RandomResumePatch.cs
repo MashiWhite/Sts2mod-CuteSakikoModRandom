@@ -79,3 +79,14 @@ internal static class RandomResumeLoadSavePatch
         RandomResumePatch.InstallForSave(__result.SaveData, "LoadRunSave");
     }
 }
+
+[HarmonyPatch(typeof(SaveManager), nameof(SaveManager.LoadAndCanonicalizeMultiplayerRunSave))]
+internal static class RandomResumeMultiplayerSavePatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(ReadSaveResult<SerializableRun> __result)
+    {
+        if (__result is null || !__result.Success || __result.SaveData is null) return;
+        RandomResumePatch.InstallForSave(__result.SaveData, "LoadAndCanonicalizeMultiplayerRunSave");
+    }
+}

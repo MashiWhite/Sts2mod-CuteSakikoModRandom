@@ -25,6 +25,29 @@ namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
 internal static class RandomDefinitionBuilder
 {
     /// <summary>
+    /// 生成期的**确定性**随机源。
+    ///
+    /// ★★ 2026-11-12 联机实测：以前这里直接用 <c>Random.Shared</c>（进程级随机），
+    ///   同一 seed 下主机和客户端生成的卡池指纹完全不同（saki 5C66… vs B0F1…），
+    ///   进战斗第一回合 checksum 就直接分叉（StateDivergence）。
+    ///   ⇒ 改成按 (profileId, seed) 播种的 <see cref="Random"/>：
+    ///     同种子、同生成顺序 → 同结果。BuildCore 每次开始都会重置。
+    ///   ★ 不要在这里放跨线程共享：生成可能在不同线程跑（单人抢跑 / 联机 RunStartedEvent），
+    ///     所以用 [ThreadStatic]，每个线程一份。
+    /// </summary>
+    [ThreadStatic]
+    private static Random? _generationRng;
+
+    private static Random GenerationRng =>
+        _generationRng ??= new Random(0x5A4B1);
+
+    private static void SeedGenerationRng(int stableSeed)
+    {
+        // 和真正喂给生成器的种子分开，避免「调随机」污染卡池生成本身。
+        _generationRng = new Random(unchecked(stableSeed * 397 ^ 0x5F3759DF));
+    }
+
+    /// <summary>
     /// 生成整套定义（带 AA 原生进度层）。
     ///
     /// ★ 关键：AA 自己的生成也是**后台线程 + 主线程轮询**（ChaosRunDefinitions.cs:652-666）：
@@ -75,6 +98,9 @@ internal static class RandomDefinitionBuilder
 
         // 种子必须稳定（跨存档 / 跨联机一致）：SHA-256 而不是 string.GetHashCode。
         var stableSeed = StableSeed(profileId, seed);
+        // ★★ 2026-11-12：生成期的所有「随机取舍」都走这个确定性 RNG，
+        //   不能再用 Random.Shared（进程级随机 → 联机两端生成不同卡池 → checksum 分叉）。
+        SeedGenerationRng(stableSeed);
         // ★ 2026-11-11 用户要求：「设置里开启原版数值后，VP 要符合文档的计算方案」。
         //   根因：我们之前构造生成器时**没传 balancedValues**（默认 false），
         //   所以 AA 的「原版数值」开关对我们的随机卡完全不生效。
@@ -326,7 +352,11 @@ internal static class RandomDefinitionBuilder
                 var details = string.Join(", ", card.Operations.Select(operation =>
                 {
                     var spec = OperationRuntimeSpecCompiler.GetOrCompile(operation);
-                    return $"{operation.Template}={AtomVpTable.Vp(spec):F1}({operation.ChineseText})";
+                    var vp = AtomVpTable.Vp(spec);
+                    // 和 CardValuator 保持一致：永久 power 在非 Power 卡上 ×1.5。
+                    var boosted = card.Type != GeneratedCardType.Power && AtomVpTable.IsPermanentPower(spec);
+                    if (boosted) vp *= CardValuator.OffTypePermanentPowerMultiplier;
+                    return $"{operation.Template}={vp:F1}{(boosted ? "(×1.5)" : "")}({operation.ChineseText})";
                 }));
                 Log.Info($"[价值对齐][明细] [{profile}] 「{card.Name?.Chinese}」{card.Rarity} {card.Cost}c "
                          + $"V={value:F1} ops=[{details}]");
@@ -811,7 +841,7 @@ internal static class RandomDefinitionBuilder
             // 用户 2026-11-11：优先缩收益，副升代价，随机来（25% 概率尝试升代价）。
             // 升代价只动「纯代价槽」（压力消耗/芭菲杯数/金币价/状态张数），
             // 且必须验证升完 V 真的下降，否则回滚走缩收益。
-            if (Random.Shared.NextDouble() < 0.25
+            if (GenerationRng.NextDouble() < 0.25
                 && TryRaiseCostSlot(operations, out var costOperation, out var costSlot, out var costNext))
             {
                 var original = operations[costOperation];
@@ -1407,7 +1437,7 @@ internal static class RandomDefinitionBuilder
 
             ComponentAtom? atom = profileId switch
             {
-                RandomProfiles.Saki => SakiAtomLibrary.PressureSelf(1),
+                RandomProfiles.Saki => PressureFiller(card),
                 RandomProfiles.Anon => SakiAtomLibrary.AddNote(1, NoteKind.Skill),
                 RandomProfiles.Rana => SakiAtomLibrary.NekoRetain(1),
                 _ => null
@@ -1461,7 +1491,7 @@ internal static class RandomDefinitionBuilder
                 if (!replaced)
                 {
                     // 保留角色机制，再补一条基础效果；不能只补原生效果（会变成纯原版卡）。
-                    if (MechanicAtomFor(profileId) is { } mechanic)
+                    if (MechanicAtomFor(profileId, card) is { } mechanic)
                         operations.Add(ToOperation(mechanic));
                     operations.Add(ToOperation(card.Type == GeneratedCardType.Attack
                         ? SakiAtomLibrary.Damage(4)
@@ -1480,13 +1510,58 @@ internal static class RandomDefinitionBuilder
         catch { return card; }
     }
 
-    private static ComponentAtom? MechanicAtomFor(string profileId) => profileId switch
+    private static ComponentAtom? MechanicAtomFor(string profileId, GeneratedCard? card = null) => profileId switch
     {
-        RandomProfiles.Saki => SakiAtomLibrary.PressureSelf(1),
+        RandomProfiles.Saki => PressureFiller(card),
         RandomProfiles.Anon => SakiAtomLibrary.AddNote(1, NoteKind.Skill),
         RandomProfiles.Rana => SakiAtomLibrary.NekoRetain(1),
         _ => null
     };
+
+    /// <summary>
+    /// 「补机制」兜底的压力原子：**获得 / 给予单体 / 给予全体** 三种形态 + 1~6 层随机，
+    /// 用生成期 RNG（同 seed 确定）选，所以不会永远是「获得1层压力」。
+    /// 2026-11-13 用户口径：获得压力/给予压力的数值要随机化。
+    /// </summary>
+    private static ComponentAtom PressureFiller(GeneratedCard? card)
+    {
+        var amount = FillerPressureAmount(card);
+        if (card is null) return SakiAtomLibrary.PressureSelf(amount);
+
+        var roll = GenerationRng.Next(100);
+        if (card.Target == TargetMode.SingleEnemy)
+        {
+            // 单体卡：55% 获得（代价） / 45% 给予目标（收益）。
+            return roll < 55
+                ? SakiAtomLibrary.PressureSelf(amount)
+                : SakiAtomLibrary.Pressure(amount);
+        }
+
+        // 非单体卡：60% 获得（代价） / 40% 给予全体。
+        return roll < 60
+            ? SakiAtomLibrary.PressureSelf(amount)
+            : SakiAtomLibrary.PressureAll(amount);
+    }
+
+    /// <summary>
+    /// 兜底压力的层数：按稀有度/费用给基准，再 ±1 波动（1~6）。
+    /// 2026-11-13 用户口径：获得/给予压力的数值要随机化。
+    /// 这里用确定性分档 + 生成期 RNG，保证同 seed 的生成/联机一致。
+    /// </summary>
+    private static int FillerPressureAmount(GeneratedCard? card)
+    {
+        if (card is null) return 1;
+        var tier = card.Rarity switch
+        {
+            GeneratedRarity.Basic => 1,
+            GeneratedRarity.Common => 2,
+            GeneratedRarity.Uncommon => 3,
+            GeneratedRarity.Rare => 4,
+            _ => 5
+        };
+        if (card.Cost >= 2) tier++;
+        return Math.Clamp(tier + GenerationRng.Next(3) - 1, 1, 6);
+    }
 
     private static GeneratedCard EnsureKeywordIdentity(GeneratedCard card, string profileId)
     {
@@ -1534,7 +1609,7 @@ internal static class RandomDefinitionBuilder
             if (!hasMechanic || hasBase) return card;
 
             var chance = card.Operations.Count == 1 ? 0.70 : 0.45;
-            if (Random.Shared.NextDouble() > chance) return card;
+            if (GenerationRng.NextDouble() > chance) return card;
 
             ComponentAtom? atom = card.Type switch
             {
@@ -1550,7 +1625,7 @@ internal static class RandomDefinitionBuilder
             // ★ 2026-11-12 用户第 4 条：攻击/技能牌几乎拿不到「获得能量」。
             //   基础复合时给小概率直接补 1 点能量，让三类型都能出现能量词条。
             if (card.Type is GeneratedCardType.Attack or GeneratedCardType.Skill
-                && Random.Shared.NextDouble() < 0.15)
+                && GenerationRng.NextDouble() < 0.15)
                 atom = SakiAtomLibrary.Energy(1);
 
             var basicOperation = ToOperation(atom);
@@ -1838,9 +1913,9 @@ internal static class RandomDefinitionBuilder
 
         // ★ 2026-11-11 用户第 1 条：特殊演奏/莱芜也要能在**基础卡池**随机到，
         //   不只升级才给。这里按 15% 概率给本角色基础卡挂上。
-        if (profileId == RandomProfiles.Anon && Random.Shared.NextDouble() < 0.15)
+        if (profileId == RandomProfiles.Anon && GenerationRng.NextDouble() < 0.15)
             Add(CuteSakikoMod.CuteSakikoModCode.Others.CutesakiKeywords.NoNote);
-        if (profileId == RandomProfiles.Rana && Random.Shared.NextDouble() < 0.15)
+        if (profileId == RandomProfiles.Rana && GenerationRng.NextDouble() < 0.15)
             Add(CuteSakikoMod.CuteSakikoModCode.Others.CutesakiKeywords.RanaLive);
 
         if (keywords.Count == before && tags.Count == tagsBefore) return card;
@@ -1913,14 +1988,14 @@ internal static class RandomDefinitionBuilder
             var added = false;
             CardUpgradeEffect? extra = null;
 
-            if (card.Tags.Contains(CardTag.Exhaust) && Random.Shared.NextDouble() < 0.5)
+            if (card.Tags.Contains(CardTag.Exhaust) && GenerationRng.NextDouble() < 0.5)
                 extra = new CardUpgradeEffect(CardUpgradeKind.RemoveExhaust, 0, 0);
-            else if (card.Tags.Contains(CardTag.Ethereal) && Random.Shared.NextDouble() < 0.5)
+            else if (card.Tags.Contains(CardTag.Ethereal) && GenerationRng.NextDouble() < 0.5)
                 extra = new CardUpgradeEffect(CardUpgradeKind.RemoveEthereal, 0, 0);
-            else if (!card.Tags.Contains(CardTag.Innate) && Random.Shared.NextDouble() < 0.20)
+            else if (!card.Tags.Contains(CardTag.Innate) && GenerationRng.NextDouble() < 0.20)
                 extra = new CardUpgradeEffect(CardUpgradeKind.GrantInnate, 0, 0);
             else if (!card.Tags.Contains(CardTag.Retain) && !card.Tags.Contains(CardTag.Ethereal)
-                     && Random.Shared.NextDouble() < 0.20)
+                     && GenerationRng.NextDouble() < 0.20)
                 extra = new CardUpgradeEffect(CardUpgradeKind.GrantRetain, 0, 0);
             else
             {
@@ -1933,7 +2008,7 @@ internal static class RandomDefinitionBuilder
                 };
                 if (keyword is not null
                     && !(card.CustomKeywords ?? []).Contains(keyword)
-                    && Random.Shared.NextDouble() < 0.40)
+                    && GenerationRng.NextDouble() < 0.40)
                 {
                     extra = new CardUpgradeEffect(CardUpgradeKind.AddCustomKeyword, 0, 0,
                         KeywordId: keyword);

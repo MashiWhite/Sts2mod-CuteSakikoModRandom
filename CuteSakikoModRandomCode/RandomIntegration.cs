@@ -119,8 +119,12 @@ internal static class RandomIntegration
         {
             RandomProfiles.Saki => new[]
             {
+                SakiAtomLibrary.Pressure(1),
+                SakiAtomLibrary.Pressure(2),
+                SakiAtomLibrary.Pressure(3),
                 SakiAtomLibrary.Pressure(4),
                 SakiAtomLibrary.Pressure(6),
+                SakiAtomLibrary.Pressure(8),
                 SakiAtomLibrary.Block(5),
                 SakiAtomLibrary.Block(8)
             },

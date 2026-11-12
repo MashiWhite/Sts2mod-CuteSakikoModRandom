@@ -13,6 +13,13 @@ namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
 /// </summary>
 internal static class CardValuator
 {
+    /// <summary>
+    /// 永久性 power 落在非 Power 卡上的 VP 倍率（2026-11-12 用户规则）。
+    /// 例：攻击牌上「获得1点力量」、技能牌上「获得1点敏捷」→ 该原子 VP ×1.5。
+    /// 「本回合获得 X 点力量」这类临时 power 不变。
+    /// </summary>
+    internal const double OffTypePermanentPowerMultiplier = 1.5;
+
     internal static double Evaluate(GeneratedCard card)
     {
         var total = 0d;
@@ -20,6 +27,11 @@ internal static class CardValuator
         {
             var spec = OperationRuntimeSpecCompiler.GetOrCompile(operation);
             var value = AtomVpTable.Vp(spec);
+
+            // ★ 永久性 power 不在 Power 卡上 → VP ×1.5（本回合型 power 不享受）。
+            if (card.Type != GeneratedCardType.Power && AtomVpTable.IsPermanentPower(spec))
+                value *= OffTypePermanentPowerMultiplier;
+
             if (operation.Template.StartsWith("A:", StringComparison.Ordinal)) value *= 0.75;
             total += value;
         }

@@ -328,9 +328,20 @@ internal static class RandomRunInstaller
         ModelDbCache.Invalidate();
 
         // ★★ 2026-11-11 兜底（用户反馈「第二次开新局初始牌组变回本体卡」）：
-        //   StartingDeck 补丁在个别时序下会被跳过（例如先读档再开新局），
+        //   StartingDeck 补丁在个别时序下会被跳过（例如联机开局、先读档再开新局），
         //   这里在 RunStartedEvent 再做一次最终校验：只要设置开着且牌组里一张随机卡都没有，
-        //   就地把牌组换成随机卡（Player.Deck 是 CardPile，可直接改 Cards）。
+        //   就地把牌组换成随机卡。
+        //
+        // ★★★ 2026-11-12 实机致命 bug（联机开局 InternalError）：
+        //   旧写法用反射直接改 CardPile._cards 并塞入 ModelDb.GetById(...) 的 **canonical** 实例。
+        //   RunState 里的牌必须是 mutable（每人一份），canonical 一进 deck 就会在
+        //   Hook.ModifyGeneratedMap → RunState.IterateHookListeners → Contains → CardModel.Owner
+        //   的 AssertMutable 上抛：
+        //     CanonicalModelException: Canonical model of type ...SakiRandomCard000 used in incorrect place.
+        //   依据：sts2 反编译 AbstractModel.AssertMutable（!IsMutable → CanonicalModelException）、
+        //         CardModel.Owner getter 每次都会 AssertMutable()。
+        //   ⇒ 必须走 RunState.CreateCard（ToMutable + 设 Owner + 注册进 _allCards），
+        //     旧牌用 CardPile.RemoveInternal + RunState.RemoveCard 成对移除。
         try
         {
             if (RandomConfig.RandomStartingDeck)
@@ -344,27 +355,36 @@ internal static class RandomRunInstaller
                         || deck.Cards.Any(card => card is AutoAnthony.ExternalChaosCardModel)) continue;
 
                     var slots = RandomCardSlots.For(profileId);
-                    var replacements = new List<MegaCrit.Sts2.Core.Models.CardModel>();
-                    for (var i = 0; i < 10 && slots.Count > 0; i++)
+                    if (slots.Count == 0) continue;
+
+                    // 先全部解析成 canonical 模板；一个都拿不到就原样不动，避免把牌组清空。
+                    var templates = new List<MegaCrit.Sts2.Core.Models.CardModel>(10);
+                    for (var i = 0; i < 10; i++)
                     {
                         var model = MegaCrit.Sts2.Core.Models.ModelDb
                             .GetById<MegaCrit.Sts2.Core.Models.CardModel>(
                                 MegaCrit.Sts2.Core.Models.ModelDb.GetId(slots[i % slots.Count]));
-                        if (model is not null) replacements.Add(model);
+                        if (model is not null) templates.Add(model);
                     }
 
-                    if (replacements.Count == 0) continue;
-                    // CardPile.Cards 是只读视图，真正的列表是私有字段 _cards
-                    var listField = typeof(MegaCrit.Sts2.Core.Entities.Cards.CardPile)
-                        .GetField("_cards", System.Reflection.BindingFlags.Instance
-                                            | System.Reflection.BindingFlags.NonPublic);
-                    if (listField?.GetValue(deck) is List<MegaCrit.Sts2.Core.Models.CardModel> list)
+                    if (templates.Count == 0) continue;
+
+                    // ① 旧牌从牌堆和 RunState 的 _allCards 里成对移除。
+                    foreach (var old in deck.Cards.ToArray())
                     {
-                        list.Clear();
-                        list.AddRange(replacements);
+                        deck.RemoveInternal(old, silent: true);
+                        runState.RemoveCard(old);
                     }
+
+                    // ② 新牌必须由 RunState.CreateCard 生成（mutable + Owner + _allCards）。
+                    foreach (var template in templates)
+                    {
+                        var card = runState.CreateCard(template, player);
+                        deck.AddInternal(card);
+                    }
+
                     Log.Info($"[CuteSakikoModRandom] 开局兜底：把 {RandomProfiles.DisplayNameFor(profileId)} "
-                             + $"的初始牌组强制换成 {replacements.Count} 张随机卡。");
+                             + $"的初始牌组强制换成 {templates.Count} 张随机卡（mutable）。");
                 }
             }
         }

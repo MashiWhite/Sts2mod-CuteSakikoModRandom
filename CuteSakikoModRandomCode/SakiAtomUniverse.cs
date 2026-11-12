@@ -176,7 +176,8 @@ internal static class SakiAtomUniverse
         //   否则会出现「爱音的卡额外获得骑士之剑」这种串池（2026-11-10 实测）。
         yield return SakiAtomLibrary.DamageGrowthMemory(7, 1);
         yield return SakiAtomLibrary.BlockGrowthMemory(5, 1);
-        foreach (var atom in Repeat(PressureAtoms(), 3)) yield return atom;
+        // 档位多了（18 个），每个 ×2 保持总权重和原来 10×3 接近。
+        foreach (var atom in Repeat(PressureAtoms(), 2)) yield return atom;
 
         // ★ 条件型效果（2026-11-10）：只给祥子。
         //   「压力翻倍；若因此触发崩溃 → 抽牌 + 能量」= 本体「如梦一场」。
@@ -279,13 +280,26 @@ internal static class SakiAtomUniverse
 
     private static IEnumerable<ComponentAtom> PressureAtoms()
     {
+        // ★ 2026-11-13 用户口径：「获得压力 / 给予压力的数值不能永远是 1，要随机」。
+        //   我们的数值多样化靠**不同档位的固定原子**（AA 采样会把槽改成 sampled，
+        //   卡面 {Amount0} 就没人填，2026-11-10 实机踩过）。所以这里把低档补齐：
+        //   原版「给予1(3)层压力」这一档以前完全没有，最低就是 6 层 → 看到的压力都很大/很单一。
+        yield return SakiAtomLibrary.Pressure(1);
+        yield return SakiAtomLibrary.Pressure(2);
+        yield return SakiAtomLibrary.Pressure(3);
+        yield return SakiAtomLibrary.Pressure(4);
         yield return SakiAtomLibrary.Pressure(6);
         yield return SakiAtomLibrary.Pressure(8);
         yield return SakiAtomLibrary.Pressure(10);
         yield return SakiAtomLibrary.Pressure(12);
+        yield return SakiAtomLibrary.PressureAll(1);
+        yield return SakiAtomLibrary.PressureAll(2);
         yield return SakiAtomLibrary.PressureAll(3);
         yield return SakiAtomLibrary.PressureAll(4);
         yield return SakiAtomLibrary.PressureAll(6);
+        yield return SakiAtomLibrary.PressureSelf(1);
+        yield return SakiAtomLibrary.PressureSelf(2);
+        yield return SakiAtomLibrary.PressureSelf(3);
         yield return SakiAtomLibrary.PressureSelf(5);
         yield return SakiAtomLibrary.PressureSelf(8);
     }
