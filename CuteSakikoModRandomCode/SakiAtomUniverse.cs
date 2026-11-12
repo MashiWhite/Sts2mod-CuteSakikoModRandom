@@ -408,6 +408,10 @@ internal static class SakiAtomUniverse
     {        // ★ 复合同子（T-003）：setup + payoff 写在同一句，不会被 AA 当纯 setup 换掉。
         foreach (var atom in Repeat(CompoundChordAtoms(), 16)) yield return atom;
         foreach (var atom in Repeat(StoredChordAtoms(), 10)) yield return atom;
+        // ★ 2026-11-13：和弦槽位（本体「团队的小太阳」机制）重新进池。
+        //   T-016 曾判定它进不了生成，所以以前寄生在 remember 上；现在 remember 拆成
+        //   「随机储存」+「随机槽位」两个独立原子，用独立模板重试一次。
+        foreach (var atom in Repeat(ChordSlotAtoms(), 4)) yield return atom;
         // 爱A5 演奏 2~3 次（2026-11-10）：给低估值控制强度，不要和 1 次同价
         foreach (var atom in Repeat(new[] { SakiAtomLibrary.PlayStoredChordsMulti(2),
                                             SakiAtomLibrary.PlayStoredChordsMulti(3) }, 4)) yield return atom;
@@ -472,8 +476,12 @@ internal static class SakiAtomUniverse
     /// <summary>爱音「储存和弦 / 演奏最后一个」（T-004）。</summary>
     private static IEnumerable<ComponentAtom> StoredChordAtoms()
     {
-        yield return SakiAtomLibrary.RememberChord(1);
-        yield return SakiAtomLibrary.RememberChord(2);
+        // ★ 2026-11-13 用户口径：remember 拆成两个原子——
+        //   「随机储存 N 个已记忆和弦」（随机、只储存、不自动演奏）
+        //   +「获得 N 个随机和弦槽位，若已有则演奏」（见 ChordSlotAtoms）。
+        yield return SakiAtomLibrary.StoreRandomChords(1);
+        yield return SakiAtomLibrary.StoreRandomChords(2);
+        yield return SakiAtomLibrary.StoreRandomChords(3);
         yield return SakiAtomLibrary.PlayLastChord(1);
         yield return SakiAtomLibrary.PlayLastChord(2);
     }

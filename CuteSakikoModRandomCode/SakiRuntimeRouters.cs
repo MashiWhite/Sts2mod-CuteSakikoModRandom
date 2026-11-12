@@ -291,7 +291,7 @@ internal sealed class PlayChordHandler : IComponentRuntimeHandler
         ChordNoteSystem.Activate(owner);
         var count = Math.Max(1, context.Amount);
 
-        // ★ 爱A1 获得随机和弦槽位；已有则演奏（本体「团队的小太阳」等 6 张卡）
+        // ★ 爱A1 获得随机和弦槽位；若已有则演奏（本体「团队的小太阳」等 6 张卡）
         if (context.RuntimeSpec.Variant == SakiComponents.ChordGrantSlotVariant)
         {
             var chords = owner.GetChords();
@@ -300,20 +300,46 @@ internal sealed class PlayChordHandler : IComponentRuntimeHandler
             var all = ChordManager.AllChords.Keys.ToList();
             if (all.Count == 0) return true;
 
-            var grant = Math.Max(1, count);
-            for (var i = 0; i < grant && all.Count > 0; i++)
+            var rng = SakiRuntimeRng.CardSelection(context);
+            for (var i = 0; i < Math.Max(1, count); i++)
             {
-                var chordId = all[SakiRuntimeRng.CardSelection(context).NextInt(all.Count)];
-                all.Remove(chordId);
+                var chordId = all[rng.NextInt(all.Count)];
                 if (chords.GetTemporaryChords().Contains(chordId))
                     await ChordNoteSystem.PlayChordAsync(owner, chordId, context.ChoiceContext);
                 else
                     chords.AddTemporaryChord(chordId);
             }
+
+            ChordNoteUIManager.UpdateStoredChordDisplay(owner);
             return true;
         }
 
-        // ★ 储存 / 演奏最后一个（T-004）
+        // ★ 随机储存 N 个已记忆和弦（2026-11-13 从 remember 拆出：
+        //   真正随机取「已记忆和弦」，只储存、不自动演奏）。
+        if (context.RuntimeSpec.Variant == SakiComponents.ChordStoreRandomVariant)
+        {
+            var chords = owner.GetChords();
+            if (chords is null) return true;
+
+            var equipped = chords.GetAllEquippedChords()
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (equipped.Count == 0) return true;
+
+            var rng = SakiRuntimeRng.CardSelection(context);
+            for (var i = 0; i < Math.Max(1, count); i++)
+            {
+                var chordId = equipped[rng.NextInt(equipped.Count)];
+                await ChordNoteSystem.AddStoredChordAsync(owner, chordId, 1, context.ChoiceContext);
+            }
+
+            ChordNoteUIManager.UpdateStoredChordDisplay(owner);
+            return true;
+        }
+
+        // 兼容 0.1.1 旧存档的 remember 卡（新生成不再产生）：
+        // 只做「储存同一个已记忆和弦」，不再自动演奏。
         if (context.RuntimeSpec.Variant == SakiComponents.ChordRememberVariant)
         {
             var chords = owner.GetChords();
@@ -336,21 +362,6 @@ internal sealed class PlayChordHandler : IComponentRuntimeHandler
 
             for (var i = 0; i < count; i++)
                 await ChordNoteSystem.AddStoredChordAsync(owner, chordId, 1, context.ChoiceContext);
-
-            // ★ 爱A1（2026-11-10，T-016 的替代方案）：同时给这个和弦一个**额外槽位**；
-            //   若该槽位已经有了，就直接演奏它。
-            //   为什么要这么绕：新开一个 `grant_slot` 变体在 AA 里会被判零价值（见 T-016），
-            //   而 `remember` 这个变体是已验证可用的，所以把机制寄生在它上面。
-            foreach (var playable in chords.GetAllEquippedChords().Distinct().ToList())
-            {
-                if (chords.GetTemporaryChords().Contains(chordId))
-                {
-                    await ChordNoteSystem.PlayChordAsync(owner, chordId, context.ChoiceContext);
-                    break;
-                }
-                chords.AddTemporaryChord(chordId);
-                break;
-            }
 
             ChordNoteUIManager.UpdateStoredChordDisplay(owner);
             return true;
@@ -2454,14 +2465,14 @@ internal sealed class IntentHandler : IComponentRuntimeHandler
         return Task.FromResult(true);
     }
 }
-/// <summary>自建能量：直接获得 2 点（文案用中文数字，不产生占位符）。</summary>
+/// <summary>自建能量：按卡面数值获得（原子基准 2 点，收缩/升级后以卡面为准）。</summary>
 internal sealed class EnergyTextHandler : IComponentRuntimeHandler
 {
     public async Task<bool> ExecuteAsync(ComponentRuntimeContext context)
     {
         var owner = context.Card.Owner;
         if (owner?.Creature is null) return true;
-        await MegaCrit.Sts2.Core.Commands.PlayerCmd.GainEnergy(2, owner);
+        await MegaCrit.Sts2.Core.Commands.PlayerCmd.GainEnergy(Math.Max(1, context.Amount), owner);
         return true;
     }
 }

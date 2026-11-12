@@ -159,6 +159,8 @@ internal static class SakiValuations
         new("csk_play_chord", "play_stored_damage", new LinearValuation(1400)),
         new("csk_play_chord", "random_memorized", new LinearValuation(1100)),
         new("csk_play_chord", "remember", new LinearValuation(1300)),
+        new("csk_play_chord", "store_random", new LinearValuation(1250)),
+        new("csk_play_chord", "grant_slot", new LinearValuation(1100)),
         new("csk_play_chord", "stored", new LinearValuation(1200)),
         new("csk_play_chord", "stored_multi", new LinearValuation(760)),
         new("csk_power", "artifact", new LinearValuation(900)),

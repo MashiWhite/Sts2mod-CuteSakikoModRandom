@@ -668,6 +668,15 @@ internal static class SakiAtomLibrary
                 "self", "count", count, []),
             category: ComponentCategory.Resource);
 
+    /// <summary>随机储存 N 个已记忆和弦。</summary>
+    public static ComponentAtom StoreRandomChords(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.ChordStoreRandomTemplate, OperationScope.NonTargeted,
+            $"随机储存{count}个已记忆[gold]和弦[/gold]。",
+            $"Store {count} random memorized [gold]Chord[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordStoreRandomVariant,
+                "self", "count", count, []),
+            category: ComponentCategory.Resource);
+
     /// <summary>演奏 N 次最后储存的和弦。</summary>
     public static ComponentAtom PlayLastChord(int count) =>
         SakiComponents.AtomWithSpec(SakiComponents.ChordLastTemplate, OperationScope.NonTargeted,
@@ -1287,8 +1296,8 @@ internal static class SakiAtomLibrary
     /// </summary>
     public static ComponentAtom GrantChordSlot(int count) =>
         SakiComponents.AtomWithSpec(SakiComponents.ChordSlotTemplate, OperationScope.NonTargeted,
-            $"随机储存{count}个[gold]和弦[/gold]到额外槽位。",
-            $"Store {count} random [gold]Chord[/gold] into extra slots.",
+            $"获得{count}个随机[gold]和弦[/gold]槽位，若已有则[gold]演奏[/gold]。",
+            $"Gain {count} random [gold]Chord[/gold] slot(s); play it if already owned.",
             SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordGrantSlotVariant,
                 "self", "count", count, []),
             category: ComponentCategory.Resource);

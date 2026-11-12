@@ -1189,6 +1189,10 @@ internal static class RandomDefinitionBuilder
     {
         // 芭菲组合的 payoff 是「杯数成本」的回报，缩它只会让净价值更负。
         if (opcode == SakiComponents.ParfaitComboOpcode) return false;
+        // ★ 2026-11-13：「获得2点能量」是固定值原子，运行时按卡面数值结算；
+        //   如果把它缩成 1，卡面/效果都会变成 1，原子失去意义 → 不允许缩 energy。
+        if (opcode == SakiComponents.EnergyOpcode && variant == SakiComponents.EnergyGainTwoVariant)
+            return false;
         if (slotId is "damage" or "block" or "heal" or "draw" or "energy" or "hits") return true;
         return (opcode, variant) switch
         {
@@ -1667,8 +1671,10 @@ internal static class RandomDefinitionBuilder
             //   AA 的 CardTextStyle 会把「N点能量」规范成 {energyPrefix:energyIcons(N)}；
             //   这里再把它换成游戏自己的能量图标资源（和 AA 训练房同一路径）。
             var normalized = ChaosCardGenerator.CardTextStyle.NormalizeRenderedChineseEnergyNotation(text);
-            // 保留 formatter，让卡面渲染自己求值；不要再替换成 [img]，否则会被丢标签。
-            var fixedText = normalized;
+            // ★ 2026-11-13：把 formatter 换成**显式 [img] 能量图标**。
+            //   实测：{energyPrefix:energyIcons(N)} 在外部包卡面上有时解析不出角色图标
+            //   （显示成灰色占位圆），而 [img] 在随机卡面是正常渲染的（音符图标已验证）。
+            var fixedText = ReplaceEnergyFormatterWithIcons(normalized, profileId);
             // ★ 2026-11-11 用户第 4 条：csk_pay_pressure 的运行期固定扣 1 层压力，
             //   但 AA 的数值放大/升级会把卡面文字里的「消耗N层」改成 6/7，造成负升级假象。
             //   这里把卡面代价钉回 1，和运行时一致。
@@ -1753,6 +1759,32 @@ internal static class RandomDefinitionBuilder
             return card;
 
         return card with { ChineseDescription = chinese, EnglishDescription = english, Upgrade = upgrade };
+    }
+
+    /// <summary>
+    /// 把 `{energyPrefix:energyIcons(N)}` 换成显式 `[img]` 图标：
+    /// N=1~3 → 重复 N 个图标；N≥4 → 「N + 图标」（与原版 formatter 的折叠规则一致）。
+    /// 图标按角色取本体的 24×24 能量图标；乐奈没有专属图，退回本体的 regent 图标。
+    /// 目的：图标数量随卡面数值变化，同时避开外部包卡面 formatter 解析失败的问题。
+    /// </summary>
+    private static string ReplaceEnergyFormatterWithIcons(string text, string profileId)
+    {
+        if (string.IsNullOrEmpty(text) || !text.Contains("energyIcons", StringComparison.Ordinal))
+            return text;
+
+        var icon = profileId switch
+        {
+            RandomProfiles.Saki => "[img]res://CuteSakikoMod/images/charui/saki/saki_text_energy.png[/img]",
+            RandomProfiles.Anon => "[img]res://CuteSakikoMod/images/charui/anon/anon_text_energy.png[/img]",
+            _ => "[img]res://images/packed/sprite_fonts/regent_energy_icon.png[/img]"
+        };
+
+        return System.Text.RegularExpressions.Regex.Replace(
+            text, @"\{energyPrefix:energyIcons\((\d+)\)\}", match =>
+            {
+                if (!int.TryParse(match.Groups[1].Value, out var amount) || amount <= 0) return "0";
+                return amount < 4 ? string.Concat(Enumerable.Repeat(icon, amount)) : $"{amount}{icon}";
+            });
     }
 
     /// <summary>抽牌数额是否离谱（2026-11-11 实测出现「抽 41 张牌」）。</summary>

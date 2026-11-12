@@ -138,6 +138,8 @@ public static class SakiComponents
 
     // ★ 储存 / 演奏最后一个（T-004）：本体 16 张「储存」+ 6 张「已记忆」，随机池原本一张都没有。
     public const string ChordRememberVariant = "remember";
+    /// <summary>随机储存 N 个「已记忆」和弦（2026-11-13 拆分自 remember）。</summary>
+    public const string ChordStoreRandomVariant = "store_random";
     public const string ChordLastVariant = "play_last";
     /// <summary>获得随机和弦槽位；若已有则演奏（本体「团队的小太阳」等 6 张卡的机制）。</summary>
     public const string ChordGrantSlotVariant = "grant_slot";
@@ -148,6 +150,8 @@ public static class SakiComponents
     //    结果是该 atom 静默落选（T-004 实测：remember/play_last 一次都没被抽到）。
     //    每个新机制开自己的 template 最稳。
     public const string ChordRememberTemplate = "csk:chord_remember";
+    /// <summary>随机储存和弦的独立模板（避免同模板不同文本被 AA 判结构冲突）。</summary>
+    public const string ChordStoreRandomTemplate = "csk:chord_store";
 
     // ★ 骑士之剑扩展（T-013，2026-11-10）：本体「磨刀」是「升级所有剑 + 压力转化伤害」，
     //   随机池之前只有「获得 1 张剑」，没有这两个用法。
