@@ -190,6 +190,19 @@ internal sealed class SakiValuePolicy : IComponentValuePolicy
             }
         }
 
+        // ★ 2026-11-14 用户口径「给予/获得压力的数值太少，对比本体」：
+        //   本体压力卡 3~25 层（Glare 10 / NoWork 15 / AbsoluteAuthority 25），
+        //   随机池不应该被压到个位数。这里单独给 csk_pressure 放宽到 1~20。
+        if (atom.RuntimeSpec is { Opcode: "csk_pressure" } pressureSpec)
+        {
+            // 伤害 + 目标压力联动的三种原子：slot0 是伤害、slot1 是压力阈值。
+            if (pressureSpec.Variant is SakiComponents.DoubleTargetPressureVariant
+                or SakiComponents.SpreadTargetPressureVariant
+                or SakiComponents.ConsumeTargetPressureHitsVariant)
+                return slot == 0 ? Math.Clamp(value, 4, 24) : Math.Clamp(value, 4, 10);
+            return Math.Clamp(value, 1, 20);
+        }
+
         // ★ 塞状态牌：1~2 张（实测出现过「将 7 张欺诈加入弃牌堆」，代价过重）
         if (atom.RuntimeSpec is { Opcode: "csk_status" })
             return Math.Clamp(value, 1, 2);
@@ -225,6 +238,17 @@ internal sealed class SakiValuePolicy : IComponentValuePolicy
         //   7 个储存和弦再被「演奏」是数量级爆炸）。
         if (atom.RuntimeSpec is { Opcode: "csk_play_chord", Variant: "remember" })
             return Math.Clamp(value, 1, 3);
+
+        // ★ 2026-11-14（本体「消消气」）：永久失去力量的层数 1~4（本体 2/3）。
+        if (atom.RuntimeSpec is { Opcode: "csk_debuff" })
+            return Math.Clamp(value, 1, 4);
+        // ★ 2026-11-14（聪明阿侬 / 即兴演奏）：学习/演奏和弦数量 1~3。
+        if (atom.RuntimeSpec is { Opcode: "csk_play_chord" } chordSpec
+            && chordSpec.Variant is "learn_random" or "play_learned")
+            return Math.Clamp(value, 1, 3);
+        // ★ 2026-11-14（本体「背负回忆」）：重放层数 1~2。
+        if (atom.RuntimeSpec is { Opcode: "csk_recall", Variant: "memory_replay" })
+            return Math.Clamp(value, 1, 2);
 
         // ★ 本体能力的层数必须收紧（2026-11-09 实测：莱芜被放大到 21 层，
         //   而本体卡只给 2~4 层，10 层就转莱芜爽了）。

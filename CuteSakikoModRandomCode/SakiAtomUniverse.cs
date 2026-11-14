@@ -282,26 +282,43 @@ internal static class SakiAtomUniverse
     {
         // ★ 2026-11-13 用户口径：「获得压力 / 给予压力的数值不能永远是 1，要随机」。
         //   我们的数值多样化靠**不同档位的固定原子**（AA 采样会把槽改成 sampled，
-        //   卡面 {Amount0} 就没人填，2026-11-10 实机踩过）。所以这里把低档补齐：
-        //   原版「给予1(3)层压力」这一档以前完全没有，最低就是 6 层 → 看到的压力都很大/很单一。
-        yield return SakiAtomLibrary.Pressure(1);
-        yield return SakiAtomLibrary.Pressure(2);
+        //   卡面 {Amount0} 就没人填，2026-11-10 实机踩过）。
+        //
+        // ★★ 2026-11-14 用户口径：「给予和获得压力的数值太少了，对比本体」。
+        //   本体实测（PowerVar<PressurePower> 基数）：
+        //     给敌人：Glare 10 / GoWork 6 / NoWork 15 / AbsoluteAuthority 25 /
+        //             Cafe 20 / AsahiBeer 15 / Obsession(全体) 3 / FeatherBirds(全体+自身) 8
+        //     给自己：DefendSaki 1 / Work 2 / PianoStrike 1 / HeartSelf 6 / SakiSweep 5 /
+        //             Unsheathe 5 / DontCareOthers 每敌 2
+        //   ⇒ 随机池按同一档位重排：给敌人 3~15，全体 3~8，自己 4~8；
+        //   并把数值上限从 6（旧 NumericCapFor 默认值）抬到 20（见 SakiValuePolicy /
+        //   NumericCapFor），否则 8/10/12/15 这些档位会被夹回个位数。
         yield return SakiAtomLibrary.Pressure(3);
         yield return SakiAtomLibrary.Pressure(4);
         yield return SakiAtomLibrary.Pressure(6);
         yield return SakiAtomLibrary.Pressure(8);
         yield return SakiAtomLibrary.Pressure(10);
         yield return SakiAtomLibrary.Pressure(12);
-        yield return SakiAtomLibrary.PressureAll(1);
-        yield return SakiAtomLibrary.PressureAll(2);
+        yield return SakiAtomLibrary.Pressure(15);
         yield return SakiAtomLibrary.PressureAll(3);
         yield return SakiAtomLibrary.PressureAll(4);
         yield return SakiAtomLibrary.PressureAll(6);
-        yield return SakiAtomLibrary.PressureSelf(1);
-        yield return SakiAtomLibrary.PressureSelf(2);
-        yield return SakiAtomLibrary.PressureSelf(3);
-        yield return SakiAtomLibrary.PressureSelf(5);
+        yield return SakiAtomLibrary.PressureAll(8);
+        yield return SakiAtomLibrary.PressureSelf(4);
+        yield return SakiAtomLibrary.PressureSelf(6);
         yield return SakiAtomLibrary.PressureSelf(8);
+
+        // ★ 2026-11-14：本体三张「伤害 + 目标压力」卡的联动效果（之前完全没拆）。
+        //   心灵痛击（8 伤 + 目标压力翻倍）、需要练习（9 伤 + 一半压力平摊）、
+        //   生气了（8 伤 + 每 8 层压力换 1 次额外伤害）。
+        foreach (var atom in Repeat(new[]
+                 {
+                     SakiAtomLibrary.DamageDoubleTargetPressure(8),
+                     SakiAtomLibrary.DamageSpreadTargetPressure(9),
+                     SakiAtomLibrary.DamageConsumeTargetPressureHits(8, 8),
+                     SakiAtomLibrary.DamageConsumeTargetPressureHits(6, 5)
+                 }, 2))
+            yield return atom;
     }
 
     private static IEnumerable<ComponentAtom> PayPressureAtoms()
@@ -323,6 +340,10 @@ internal static class SakiAtomUniverse
         yield return SakiAtomLibrary.ForgetRandom(1);
         yield return SakiAtomLibrary.Recall(1);
         yield return SakiAtomLibrary.Recall(2);
+        // ★ 2026-11-14（本体「背负回忆」）：随机让一张回忆获得重放 1~2。
+        //   直接 yield（不再套 Repeat），权重与 Recall 同档。
+        yield return SakiAtomLibrary.MemoryReplay(1);
+        yield return SakiAtomLibrary.MemoryReplay(2);
     }
 
     /// <summary>A1 数值随压力缩放（T-014）。祥子 90 张里有 51 张涉及压力，这是主轴联动。</summary>
@@ -407,7 +428,42 @@ internal static class SakiAtomUniverse
     private static IEnumerable<ComponentAtom> AnonOnly()
     {        // ★ 复合同子（T-003）：setup + payoff 写在同一句，不会被 AA 当纯 setup 换掉。
         foreach (var atom in Repeat(CompoundChordAtoms(), 16)) yield return atom;
+        // ★ 2026-11-14（聪明阿侬 / 即兴演奏随机侧等价）：学习和弦 → 演奏已学会和弦。
+        foreach (var atom in Repeat(new[] { SakiAtomLibrary.LearnRandomChords(1),
+                                            SakiAtomLibrary.LearnRandomChords(2),
+                                            SakiAtomLibrary.PlayLearnedChords(2),
+                                            SakiAtomLibrary.PlayLearnedChords(3) }, 2))
+            yield return atom;
+        // ★ 2026-11-14 爱音专属和弦原子（解锁 + 演奏）。
+        //   本体系里这 7 个和弦只能靠牌组里的和弦卡解锁，随机池没有和弦卡 → 原子自己解锁。
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveAnonCVariant, "爱音C和弦", "Anon C Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveAnonDVariant, "爱音D和弦", "Anon D Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveAnonEVariant, "爱音E和弦", "Anon E Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveAnonFVariant, "爱音F和弦", "Anon F Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveAnonGVariant, "爱音G和弦", "Anon G Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveGreyVariant, "灰爱音和弦", "Grey Anon Chord");
+        yield return SakiAtomLibrary.ExclusiveChord(SakiComponents.ChordExclusiveHekitenVariant, "碧天伴走", "Hekitenbansou");
+        // ★ 2026-11-14 只解锁不演奏版本（解锁后留给 play_learned / stored）。
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockAnonCVariant, "爱音C和弦", "Anon C Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockAnonDVariant, "爱音D和弦", "Anon D Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockAnonEVariant, "爱音E和弦", "Anon E Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockAnonFVariant, "爱音F和弦", "Anon F Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockAnonGVariant, "爱音G和弦", "Anon G Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockGreyVariant, "灰爱音和弦", "Grey Anon Chord");
+        yield return SakiAtomLibrary.ExclusiveChordUnlock(SakiComponents.ChordUnlockHekitenVariant, "碧天伴走", "Hekitenbansou");
+        // ★ 2026-11-14（连接之锚 / 扫弦）：选择型，复用本体选择界面。
+        foreach (var atom in Repeat(new[] { SakiAtomLibrary.SelectAndPlayChords(2),
+                                            SakiAtomLibrary.StrumNotes(3) }, 2))
+            yield return atom;
         foreach (var atom in Repeat(StoredChordAtoms(), 10)) yield return atom;
+        // ★ 2026-11-14（本体「消消气」）：使目标永久失去 2/3 点力量。
+        foreach (var atom in Repeat(new[] { SakiAtomLibrary.LoseStrengthAll(1),
+                                            SakiAtomLibrary.LoseStrengthAll(2) }, 2))
+            yield return atom;
+        foreach (var atom in Repeat(new[] { SakiAtomLibrary.LoseStrength(2),
+                                            SakiAtomLibrary.LoseStrength(3) }, 2))
+            yield return atom;
+
         // ★ 2026-11-13：和弦槽位（本体「团队的小太阳」机制）重新进池。
         //   T-016 曾判定它进不了生成，所以以前寄生在 remember 上；现在 remember 拆成
         //   「随机储存」+「随机槽位」两个独立原子，用独立模板重试一次。
@@ -598,6 +654,13 @@ internal static class SakiAtomUniverse
         yield return SakiAtomLibrary.DamageByTargetPressure(2);
         // 乐A1 伤害＝自身格挡（2026-11-10）
         yield return SakiAtomLibrary.DamageByBlock(4);
+        // ★ 2026-11-14（本体「把衣服剪开」升级版）：清敌人格挡 + 按自身格挡 ×N 出伤。
+        //   直接 yield，权重与 DamageByBlock 同档。
+        yield return SakiAtomLibrary.BlockSlash(1);
+        yield return SakiAtomLibrary.BlockSlash(2);
+        // ★ 2026-11-14（本体「快速学习」）：对全体造成「敌人攻击意图总和 ×N」的伤害。
+        yield return SakiAtomLibrary.DamageByEnemyIntent(1);
+        yield return SakiAtomLibrary.DamageByEnemyIntent(2);
 
 
         // 乐A2/A3（2026-11-10）：买芭菲 / 猫咪进抽牌堆 / 三牌堆各一张

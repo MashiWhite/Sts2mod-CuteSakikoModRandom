@@ -21,6 +21,8 @@ using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.MonsterMoves.Intents;
+using CuteSakikoMod.CuteSakikoModCode.Cards.Anon.Token;
 
 namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
 
@@ -35,17 +37,43 @@ internal static class SakiRuntimeRouters
     {
         var routes = new List<ComponentRuntimeRoute>
         {
+        new(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthVariant, new DebuffHandler()),
+        new(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthAllVariant, new DebuffHandler()),
         new(SakiComponents.PressureOpcode, SakiComponents.PressureVariant, new PressureHandler()),
         new(SakiComponents.PressureOpcode, SakiComponents.PressureAllVariant, new PressureHandler()),
+        new(SakiComponents.PressureOpcode, SakiComponents.PressureSelfVariant, new PressureHandler()),
+        new(SakiComponents.PressureOpcode, SakiComponents.DoubleTargetPressureVariant, new PressureAttackHandler()),
+        new(SakiComponents.PressureOpcode, SakiComponents.SpreadTargetPressureVariant, new PressureAttackHandler()),
+        new(SakiComponents.PressureOpcode, SakiComponents.ConsumeTargetPressureHitsVariant, new PressureAttackHandler()),
         new(SakiComponents.ForgetOpcode, SakiComponents.ForgetVariant, new ForgetHandler()),
         new(SakiComponents.ForgetOpcode, SakiComponents.ForgetRandomVariant, new ForgetHandler()),
         new(SakiComponents.RecallOpcode, SakiComponents.RecallVariant, new RecallHandler()),
+        new(SakiComponents.RecallOpcode, SakiComponents.RecallReplayVariant, new RecallHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.PlayChordStoredVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.PlayChordStoredMultiVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.PlayChordRandomVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.ChordAndDamageVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.ChordAndBlockVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.ChordRememberVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordStoreRandomVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordLearnRandomVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordPlayLearnedVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonCVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonDVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonEVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonFVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonGVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveGreyVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveHekitenVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonCVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonDVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonEVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonFVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonGVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockGreyVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockHekitenVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordSelectPlayVariant, new PlayChordHandler()),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordStrumNotesVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.ChordLastVariant, new PlayChordHandler()),
         new(SakiComponents.PlayChordOpcode, SakiComponents.ChordGrantSlotVariant, new PlayChordHandler()),
         new(SakiComponents.NoteOpcode, SakiComponents.NoteAddAttackVariant, new NoteHandler()),
@@ -60,6 +88,7 @@ internal static class SakiRuntimeRouters
         new(SakiComponents.NoteOpcode, SakiComponents.NoteAndBlockVariant, new NoteHandler()),
         new(SakiComponents.NoteOpcode, SakiComponents.NoteAndDrawVariant, new NoteHandler()),
         new(SakiComponents.NoteOpcode, SakiComponents.NoteAndEnergyVariant, new NoteHandler()),
+        new(SakiComponents.NoteOpcode, SakiComponents.NoteAndTriggerVariant, new NoteHandler()),
         new(SakiComponents.ParfaitOpcode, SakiComponents.ParfaitEatVariant, new ParfaitHandler()),
         new(SakiComponents.ParfaitOpcode, SakiComponents.ParfaitBuyVariant, new ParfaitHandler()),
         new(SakiComponents.ParfaitOpcode, SakiComponents.ConsumeAsParfaitVariant, new ParfaitHandler()),
@@ -104,6 +133,8 @@ internal static class SakiRuntimeRouters
         new(SakiComponents.ScaleOpcode, SakiComponents.SpendAllPressureEnergyOneVariant, new ScaleByPressureHandler()),
         new(SakiComponents.ScaleOpcode, SakiComponents.DamageByForgetPileVariant, new ScaleByPressureHandler()),
         new(SakiComponents.ScaleOpcode, SakiComponents.DamageByBlockVariant, new ScaleByPressureHandler()),
+        new(SakiComponents.ScaleOpcode, SakiComponents.BlockSlashVariant, new ScaleByPressureHandler()),
+        new(SakiComponents.ScaleOpcode, SakiComponents.DamageByIntentVariant, new ScaleByPressureHandler()),
         new(SakiComponents.ScaleOpcode, SakiComponents.DamageByTargetPressureVariant, new ScaleByPressureHandler()),
         new(SakiComponents.ScaleOpcode, SakiComponents.DamageByPianoVariant, new ScaleByPressureHandler()),
         new(SakiComponents.ScaleOpcode, SakiComponents.DamageHitsByPianoVariant, new ScaleByPressureHandler()),
@@ -199,6 +230,14 @@ internal sealed class PressureHandler : IComponentRuntimeHandler
         if (amount <= 0) return true;
 
         var owner = context.Card.Owner;
+        // ★ 2026-11-14：自增压力改用独立变体 apply_self（估值比给敌人略低，见 SakiValuations）。
+        if (context.RuntimeSpec.Variant == SakiComponents.PressureSelfVariant)
+        {
+            if (owner.Creature is null) return true;
+            await PressureCmd.Apply(context.ChoiceContext, owner.Creature, amount, owner.Creature, context.Card);
+            return true;
+        }
+
         if (context.RuntimeSpec.Variant == SakiComponents.PressureAllVariant)
         {
             var combatState = owner.Creature?.CombatState;
@@ -208,10 +247,132 @@ internal sealed class PressureHandler : IComponentRuntimeHandler
             return true;
         }
 
+        // ★ 2026-11-14：「获得 N 层压力」和「给予 N 层压力」共用 apply 变体，
+        //   靠 RuntimeSpec.Target 区分（self / selected_enemy）。
+        //   以前只认 context.Target，非指向卡（self）拿不到目标 → 压力自增卡什么也不发生。
         var target = context.Target;
+        if (target is null && string.Equals(context.RuntimeSpec.Target, "self", StringComparison.Ordinal))
+            target = owner.Creature;
         if (target is null) return true;
         await PressureCmd.Apply(context.ChoiceContext, target, amount, owner.Creature, context.Card);
         return true;
+    }
+}
+
+/// <summary>
+/// 伤害 + 目标压力互动（本体「心灵痛击」「需要练习」「生气了」拆出来的三种原子）。
+/// 三种都以「造成伤害」为主，压力只是附加的联动效果。
+/// </summary>
+/// <summary>
+/// 负向能力：扣减目标已有的能力层数（本体「消消气」失去力量）。
+/// </summary>
+internal sealed class DebuffHandler : IComponentRuntimeHandler
+{
+    public async Task<bool> ExecuteAsync(ComponentRuntimeContext context)
+    {
+        var owner = context.Card.Owner;
+        var amount = Math.Max(1, context.Amount);
+
+        // ★ 全体版没有单体目标，必须先判，否则会被 target==null 的早退吞掉。
+        if (context.RuntimeSpec.Variant == SakiComponents.LoseStrengthAllVariant)
+        {
+            var combat = owner.Creature?.CombatState;
+            if (combat is null) return true;
+            foreach (var enemy in combat.HittableEnemies.ToArray())
+                await PowerCmd.Apply<StrengthPower>(context.ChoiceContext, enemy, -amount, owner.Creature, context.Card);
+            return true;
+        }
+
+        var target = context.Target ?? context.CardPlay.Target;
+        if (target is null) return true;
+
+        if (context.RuntimeSpec.Variant == SakiComponents.LoseStrengthVariant)
+        {
+            await PowerCmd.Apply<StrengthPower>(context.ChoiceContext, target, -amount, owner.Creature, context.Card);
+            return true;
+        }
+
+        return false;
+    }
+}
+internal sealed class PressureAttackHandler : IComponentRuntimeHandler
+{
+    public async Task<bool> ExecuteAsync(ComponentRuntimeContext context)
+    {
+        var owner = context.Card.Owner;
+        var creature = owner.Creature;
+        if (creature is null) return true;
+
+        var damage = Math.Max(1, context.RuntimeSpec.Values.Count > 0
+            ? context.RuntimeSpec.Values[0].BaseValue : context.Amount);
+        var target = context.Target ?? context.CardPlay.Target;
+        if (target is null) return true;
+
+        switch (context.RuntimeSpec.Variant)
+        {
+            case SakiComponents.DoubleTargetPressureVariant:
+            {
+                await DamageCmd.Attack(damage)
+                    .FromCard(context.Card, context.CardPlay)
+                    .Targeting(target)
+                    .WithHitFx("vfx/vfx_attack_slash")
+                    .Execute(context.ChoiceContext);
+
+                // 本体「心灵痛击」：把当前层数作为增加量 → amount += amount
+                var power = target.GetPower<PressurePower>();
+                if (power is { Amount: > 0 })
+                    await PowerCmd.ModifyAmount(context.ChoiceContext, power, power.Amount, creature, context.Card);
+                return true;
+            }
+            case SakiComponents.SpreadTargetPressureVariant:
+            {
+                await DamageCmd.Attack(damage)
+                    .FromCard(context.Card, context.CardPlay)
+                    .Targeting(target)
+                    .WithHitFx("vfx/vfx_attack_slash")
+                    .Execute(context.ChoiceContext);
+
+                // 本体「需要练习」：一半（向上取整）平摊给除目标外的敌人
+                var power = target.GetPower<PressurePower>();
+                if (power is not { Amount: > 0 }) return true;
+                var half = (int)Math.Ceiling(power.Amount / 2m);
+                var others = creature.CombatState?.HittableEnemies?.Where(enemy => enemy != target).ToList() ?? [];
+                if (others.Count == 0) return true;
+                var baseAmount = half / others.Count;
+                var remainder = half % others.Count;
+                for (var i = 0; i < others.Count; i++)
+                {
+                    var add = baseAmount + (i < remainder ? 1 : 0);
+                    if (add > 0)
+                        await PressureCmd.Apply(context.ChoiceContext, others[i], add, creature, context.Card);
+                }
+                return true;
+            }
+            case SakiComponents.ConsumeTargetPressureHitsVariant:
+            {
+                // 本体「生气了」：每 N 层压力消耗之并额外造成 1 次伤害；用一次
+                // AttackCommand + WithHitCount，保证活力/力量覆盖全部命中。
+                var need = Math.Max(1, context.RuntimeSpec.Values.Count > 1
+                    ? context.RuntimeSpec.Values[1].BaseValue : 8);
+                var extraHits = 0;
+                var power = target.GetPower<PressurePower>();
+                if (power is { Amount: > 0 } && power.Amount >= need)
+                {
+                    extraHits = (int)(power.Amount / need);
+                    await PowerCmd.ModifyAmount(context.ChoiceContext, power, -extraHits * need, creature, context.Card);
+                }
+
+                await DamageCmd.Attack(damage)
+                    .FromCard(context.Card, context.CardPlay)
+                    .WithHitCount(1 + extraHits)
+                    .Targeting(target)
+                    .WithHitFx("vfx/vfx_attack_slash")
+                    .Execute(context.ChoiceContext);
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -270,6 +431,25 @@ internal sealed class RecallHandler : IComponentRuntimeHandler
     {
         var owner = context.Card.Owner;
 
+        // ★ 2026-11-14（本体「背负回忆」）：随机让一张已有的回忆获得重放 N。
+        if (context.RuntimeSpec.Variant == SakiComponents.RecallReplayVariant)
+        {
+            var memoryKeyword = CutesakiKeywords.Memory.GetModCardKeyword();
+            var memories = new List<CardModel>();
+            foreach (var pileType in new[] { PileType.Hand, PileType.Draw, PileType.Discard, PileType.Exhaust })
+            {
+                var pile = pileType.GetPile(owner);
+                if (pile is null) continue;
+                memories.AddRange(pile.Cards.Where(card => card.Keywords.Contains(memoryKeyword)));
+            }
+            if (memories.Count == 0) return true;
+
+            var picked = memories[SakiRuntimeRng.CardSelection(context).NextInt(memories.Count)];
+            picked.BaseReplayCount += Math.Max(1, context.Amount);
+            CardCmd.Preview(picked);
+            return true;
+        }
+
         await MemoryCmd.Recall(context.ChoiceContext, owner, allowChoose: false, upgraded: context.Card.IsUpgraded,
             count: Math.Max(1, context.Amount), source: context.Card);
         return true;
@@ -291,7 +471,122 @@ internal sealed class PlayChordHandler : IComponentRuntimeHandler
 
         ChordNoteSystem.Activate(owner);
         var count = Math.Max(1, context.Amount);
+        // ★ 2026-11-14（本体「聪明阿侬」）：学习 N 个随机新和弦（写进已学会和弦库）。
+        if (context.RuntimeSpec.Variant == SakiComponents.ChordLearnRandomVariant)
+        {
+            var learnChords = owner.GetChords();
+            if (learnChords is null) return true;
+            ChordCmd.LearnRandomChords(learnChords, Math.Clamp(count, 1, 3));
+            ChordNoteUIManager.UpdateStoredChordDisplay(owner);
+            return true;
+        }
 
+        // ★ 2026-11-14（本体「即兴演奏」的随机侧等价）：从已学会和弦里随机演奏 N 个。
+        //   本体是遍历牌组里的和弦卡，随机池没有和弦卡 → 改用已学会和弦库。
+        if (context.RuntimeSpec.Variant == SakiComponents.ChordPlayLearnedVariant)
+        {
+            var learnedChords = owner.GetChords();
+            if (learnedChords is null) return true;
+            // ★ 2026-11-14 用户指正：专属和弦（Anon*）**学不到**，只能靠和弦卡在牌组里
+            //   解锁（ChordCardManager 会把它们塞进临时和弦）。所以取「已解锁」全集：
+            //   已学会 ∪ 临时和弦（卡牌解锁 / grant_slot）∪ bonus 和弦。
+            var learned = learnedChords.GetLearnedChords()
+                .Concat(learnedChords.GetTemporaryChords())
+                .Concat(learnedChords.GetBonusChords())
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (learned.Count == 0) return true;
+
+            var learnedRng = SakiRuntimeRng.CardSelection(context);
+            for (var i = 0; i < Math.Clamp(count, 1, 3); i++)
+            {
+                if (owner.Creature is null || !owner.Creature.IsAlive) break;
+                await ChordNoteSystem.PlayChordAsync(owner, learned[learnedRng.NextInt(learned.Count)],
+                    context.ChoiceContext);
+            }
+            return true;
+        }
+
+        // ★ 2026-11-14（本体「连接之锚」）：复用本体的和弦选择界面，选 N 种再逐个演奏。
+        if (context.RuntimeSpec.Variant == SakiComponents.ChordSelectPlayVariant)
+        {
+            var chosenChords = await ChordCmd.SelectChords(context.ChoiceContext, owner, Math.Clamp(count, 1, 3));
+            foreach (var chosenId in chosenChords)
+            {
+                if (owner.Creature is null || !owner.Creature.IsAlive) break;
+                await ChordNoteSystem.PlayChordAsync(owner, chosenId, context.ChoiceContext);
+            }
+            return true;
+        }
+
+        // ★ 2026-11-14（本体「扫弦」）：每轮弹出四个音符选一个，触发对应音符效果。
+        if (context.RuntimeSpec.Variant == SakiComponents.ChordStrumNotesVariant)
+        {
+            var strumChords = owner.GetChords();
+            var combatState = owner.Creature?.CombatState;
+            if (strumChords is null || combatState is null) return true;
+
+            var prefs = new CardSelectorPrefs(
+                new LocString("card_selection", "CUTE_SAKIKO_MOD_STRUM_SELECT"), 1);
+            for (var round = 0; round < Math.Clamp(count, 1, 3); round++)
+            {
+                if (owner.Creature is null || !owner.Creature.IsAlive) break;
+                var options = new List<CardModel>
+                {
+                    combatState.CreateCard<AtkNote>(owner),
+                    combatState.CreateCard<SkillNote>(owner),
+                    combatState.CreateCard<PowerNote>(owner),
+                    combatState.CreateCard<SpeNote>(owner)
+                };
+                var picked = (await CardSelectCmd.FromSimpleGrid(context.ChoiceContext, options, owner, prefs))
+                    .FirstOrDefault();
+                if (picked is not null)
+                    await strumChords.OnNoteGenerated(context.ChoiceContext, owner, picked.Type, triggerEffect: false);
+                foreach (var option in options)
+                    combatState.RemoveCard(option);
+            }
+            return true;
+        }
+        // ★ 2026-11-14：爱音专属和弦（AnonC/D/E/F/G、灰爱音、碧天伴走）。
+        //   本体只能靠牌组里的和弦卡解锁，随机卡没有和弦卡 → 这里自己解锁 + 立即演奏。
+        // 只解锁不演奏的变体（2026-11-14）：解锁后立即返回，不演奏。
+        var exclusivePlays = context.RuntimeSpec.Variant is SakiComponents.ChordExclusiveAnonCVariant
+            or SakiComponents.ChordExclusiveAnonDVariant
+            or SakiComponents.ChordExclusiveAnonEVariant
+            or SakiComponents.ChordExclusiveAnonFVariant
+            or SakiComponents.ChordExclusiveAnonGVariant
+            or SakiComponents.ChordExclusiveGreyVariant
+            or SakiComponents.ChordExclusiveHekitenVariant;
+        var exclusiveChordId = context.RuntimeSpec.Variant switch
+        {
+            SakiComponents.ChordExclusiveAnonCVariant => "AnonCChord",
+            SakiComponents.ChordExclusiveAnonDVariant => "AnonDChord",
+            SakiComponents.ChordExclusiveAnonEVariant => "AnonEChord",
+            SakiComponents.ChordExclusiveAnonFVariant => "AnonFChord",
+            SakiComponents.ChordExclusiveAnonGVariant => "AnonGChord",
+            SakiComponents.ChordExclusiveGreyVariant => "GreyAnonChord",
+            SakiComponents.ChordExclusiveHekitenVariant => "HekitenbansouChord",
+            SakiComponents.ChordUnlockAnonCVariant => "AnonCChord",
+            SakiComponents.ChordUnlockAnonDVariant => "AnonDChord",
+            SakiComponents.ChordUnlockAnonEVariant => "AnonEChord",
+            SakiComponents.ChordUnlockAnonFVariant => "AnonFChord",
+            SakiComponents.ChordUnlockAnonGVariant => "AnonGChord",
+            SakiComponents.ChordUnlockGreyVariant => "GreyAnonChord",
+            SakiComponents.ChordUnlockHekitenVariant => "HekitenbansouChord",
+            _ => null
+        };
+        if (exclusiveChordId is not null)
+        {
+            var exclusiveChords = owner.GetChords();
+            if (exclusiveChords is null) return true;
+            if (!exclusiveChords.GetTemporaryChords().Contains(exclusiveChordId))
+                exclusiveChords.AddTemporaryChord(exclusiveChordId);
+            ChordNoteUIManager.UpdateStoredChordDisplay(owner);
+            if (exclusivePlays)
+                await ChordNoteSystem.PlayChordAsync(owner, exclusiveChordId, context.ChoiceContext);
+            return true;
+        }
         // ★ 爱A1 获得随机和弦槽位；若已有则演奏（本体「团队的小太阳」等 6 张卡）
         if (context.RuntimeSpec.Variant == SakiComponents.ChordGrantSlotVariant)
         {
@@ -432,6 +727,23 @@ internal sealed class NoteHandler : IComponentRuntimeHandler
             return true;
         }
 
+        // ★ 2026-11-14：清空音符并按个数换格挡/抽牌（本体「拨片坏了」「喝水冷静」）。
+        //   此前这两个变体没分支，掉到末尾的「加攻击音符」，效果完全相反。
+        if (context.RuntimeSpec.Variant is SakiComponents.ClearScaleBlockVariant
+            or SakiComponents.ClearScaleDrawVariant)
+        {
+            var cleared = ChordNoteSystem.GetCurrentNotes(owner)?.ToList() ?? [];
+            ChordNoteSystem.ClearNotes(owner);
+            var per = Math.Max(1, context.Amount);
+            var total = cleared.Count * per;
+            if (total <= 0) return true;
+            if (context.RuntimeSpec.Variant == SakiComponents.ClearScaleBlockVariant)
+                await CreatureCmd.GainBlock(owner.Creature!, total, ValueProp.Move, context.CardPlay);
+            else
+                await CardPileCmd.Draw(context.ChoiceContext, total, owner);
+            return true;
+        }
+
         // ★ 2026-11-11 用户第 9 条：获得音符 + **触发所有音符效果**（本体「并触发音符对应效果」）。
         if (context.RuntimeSpec.Variant == SakiComponents.NoteAndTriggerVariant)
         {
@@ -457,7 +769,19 @@ internal sealed class NoteHandler : IComponentRuntimeHandler
             or SakiComponents.NoteAndDrawVariant
             or SakiComponents.NoteAndEnergyVariant)
         {
-            await ChordNoteSystem.AddNoteAsync(owner, CardType.Attack, context.ChoiceContext);
+            // ★ 2026-11-14：音符种类从隐藏槽 note_kind 还原
+            //   （0=Attack / 1=Skill / 2=Power / 3=Special）。
+            //   之前一律加攻击音符 → 卡面写「技能音符」实际发攻击音符。
+            var kindValue = context.RuntimeSpec.Values
+                .FirstOrDefault(value => value.Id == "note_kind")?.BaseValue ?? 0;
+            var noteType = kindValue switch
+            {
+                1 => CardType.Skill,
+                2 => CardType.Power,
+                3 => CuteSakikoMod.Entry.AnyNote,
+                _ => CardType.Attack
+            };
+            await ChordNoteSystem.AddNoteAsync(owner, noteType, context.ChoiceContext);
             var payoff = context.RuntimeSpec.Values.Count > 1
                 ? Math.Max(1, context.RuntimeSpec.Values[1].BaseValue) : 1;
 
@@ -481,6 +805,17 @@ internal sealed class NoteHandler : IComponentRuntimeHandler
                     .WithHitFx("vfx/vfx_attack_slash")
                     .Execute(context.ChoiceContext);
             }
+            return true;
+        }
+
+        // ★ 2026-11-14：随机音符（本体「练习…练习…」）此前掉进末尾的固定「攻击音符」。
+        if (context.RuntimeSpec.Variant == SakiComponents.RandomNoteVariant)
+        {
+            var kinds = new[] { CardType.Attack, CardType.Skill, CardType.Power, CuteSakikoMod.Entry.AnyNote };
+            var rng = SakiRuntimeRng.CardSelection(context);
+            var randomCount = Math.Max(1, context.Amount);
+            for (var i = 0; i < randomCount; i++)
+                await ChordNoteSystem.AddNoteAsync(owner, kinds[rng.NextInt(kinds.Length)], context.ChoiceContext);
             return true;
         }
 
@@ -552,6 +887,38 @@ internal sealed class PayPressureHandler : IComponentRuntimeHandler
                 }
                 return true;
             }
+            case SakiComponents.PayPressureWeakAllVariant:
+            {
+                // ★ 2026-11-14 补分支：此前 weak_all 掉进 default 的伤害段，
+                //   固定扣 1 层压力、不给虚弱（用户实机「别再招架」复现：
+                //   卡面「消耗2层压力，使全体敌人获得其1倍的虚弱」→ 只扣 1 层、无虚弱）。
+                //   口径：两槽分别是 cost / multiplier，收益 = cost × multiplier 层虚弱。
+                var cost = Math.Max(1, main);
+                var multiplier = Math.Max(1, extra);
+                var pressure = owner.Creature?.GetPower<PressurePower>();
+                if (pressure is not null && pressure.Amount >= cost)
+                {
+                    await PowerCmd.ModifyAmount(context.ChoiceContext, pressure, -cost, owner.Creature!, context.Card);
+                    var combat = owner.Creature?.CombatState;
+                    if (combat is not null)
+                        await PowerCmd.Apply<WeakPower>(context.ChoiceContext, combat.HittableEnemies,
+                            cost * multiplier, owner.Creature!, context.Card);
+                }
+                return true;
+            }
+            case SakiComponents.PayPressureRecallVariant:
+            {
+                // ★ 2026-11-14 补分支：此前同样掉进 default，会变成「打伤害」而不是给回忆。
+                //   口径：有压力就扣 1 层，然后获得卡面数量的回忆（本体「再度鼓励」）。
+                var pressure = owner.Creature?.GetPower<PressurePower>();
+                if (pressure is { Amount: > 0 })
+                {
+                    await PowerCmd.ModifyAmount(context.ChoiceContext, pressure, -1, owner.Creature!, context.Card);
+                    await MemoryCmd.Recall(context.ChoiceContext, owner, count: Math.Max(1, main),
+                        upgraded: context.Card.IsUpgraded, source: context.Card);
+                }
+                return true;
+            }
             default:
             {
                 // ★ 伤害段必须**一次 AttackCommand + WithHitCount**（照抄本体 StrikeFast）。
@@ -618,12 +985,13 @@ internal sealed class DeckHandler : IComponentRuntimeHandler
         }
 
         // ★ 消耗 N 层压力，将此牌返回手牌（本体「泡澡」/「舞台上的自信」）
+        //   ★ 2026-11-14：压力不足时不再返还（之前是白嫖：没压力也能回手）。
         if (context.RuntimeSpec.Variant == SakiComponents.ReturnToHandVariant)
         {
             var cost = Math.Max(1, context.Amount);
             var pressure = owner.Creature?.GetPower<PressurePower>();
-            if (pressure is not null && pressure.Amount >= cost)
-                await PowerCmd.ModifyAmount(context.ChoiceContext, pressure, -cost, owner.Creature!, context.Card);
+            if (pressure is null || pressure.Amount < cost) return true;
+            await PowerCmd.ModifyAmount(context.ChoiceContext, pressure, -cost, owner.Creature!, context.Card);
 
             var self = PileType.Discard.GetPile(owner);
             if (self is not null && self.Cards.Contains(context.Card))
@@ -892,6 +1260,26 @@ internal sealed class CostHandler : IComponentRuntimeHandler
             await CardPileCmd.Draw(context.ChoiceContext, 1, owner);
             foreach (var card in candidates)
                 card.EnergyCost.SetThisTurn(0);
+            return true;
+        }
+
+        if (context.RuntimeSpec.Variant == SakiComponents.CostTransformHandVariant)
+        {
+            // ★ 2026-11-14 补分支：此前 transform_hand 落到末尾直接 return true，
+            //   打出后什么都不发生（用户实机「如梦泡澡」复现：只给压力 + 抽了牌，
+            //   手牌没有被变化）。
+            //   文本口径：「抽一张牌。随机将手牌中的 N 张牌变化为其他牌。」
+            //   ⇒ 先抽 1，再把**出牌前**手牌里随机 N 张变形（不含本牌）。
+            await CardPileCmd.Draw(context.ChoiceContext, 1, owner);
+            if (candidates.Count > 0)
+            {
+                var rng = owner.PlayerRng.Transformations;
+                foreach (var card in candidates)
+                {
+                    if (!card.IsTransformable) continue;
+                    await CardCmd.TransformToRandom(card, rng);
+                }
+            }
             return true;
         }
 
@@ -1328,6 +1716,7 @@ internal sealed class ConditionHandler : IComponentRuntimeHandler
             }
 
             // ★ 全都会了！：造成伤害 → 若击杀，演奏所有已记忆和弦
+            //   ★ 2026-11-14：之前只调了 Activate，没有真的演奏 → 卡面写「演奏所有已记忆和弦」但没有任何效果。
             case SakiComponents.DamagePlayMemorizedOnKillVariant:
             {
                 var damage = Value(0, 20);
@@ -1339,7 +1728,10 @@ internal sealed class ConditionHandler : IComponentRuntimeHandler
                     .Execute(context.ChoiceContext);
 
                 if (target is null || target.IsDead)
+                {
                     ChordNoteSystem.Activate(owner);
+                    await ChordNoteSystem.PlayAllEquippedChordsAsync(owner, context.ChoiceContext);
+                }
                 return true;
             }
 
@@ -1635,6 +2027,64 @@ internal sealed class ScaleByPressureHandler : IComponentRuntimeHandler
             return true;
         }
 
+        // ★ 2026-11-14（本体「把衣服剪开」升级版）：清除所有敌人格挡，
+        //   再按**清除前**自身格挡值 × N 造成伤害。
+        if (context.RuntimeSpec.Variant == SakiComponents.BlockSlashVariant)
+        {
+            var target = context.Target ?? context.CardPlay.Target;
+            if (target is null) return true;
+            var scale = Math.Max(1, multiplier);
+            var ownBlock = owner.Creature?.Block ?? 0;
+
+            var combat = owner.Creature?.CombatState;
+            if (combat is not null)
+                foreach (var enemy in combat.HittableEnemies.ToArray())
+                    if (enemy.Block > 0)
+                        await CreatureCmd.LoseBlock(context.ChoiceContext, enemy, enemy.Block, null);
+
+            var slashDamage = Math.Max(1, (int)ownBlock * scale);
+            await DamageCmd.Attack(slashDamage)
+                .FromCard(context.Card, context.CardPlay)
+                .Targeting(target)
+                .WithHitFx("vfx/vfx_attack_slash")
+                .Execute(context.ChoiceContext);
+            return true;
+        }
+
+        // ★ 2026-11-14（本体「快速学习」）：对全体敌人造成「所有敌人攻击意图总和 × N」的伤害。
+        if (context.RuntimeSpec.Variant == SakiComponents.DamageByIntentVariant)
+        {
+            var intentCombat = owner.Creature?.CombatState;
+            if (intentCombat is null) return true;
+
+            var intentScale = Math.Max(1, multiplier);
+            var totalIntentDamage = 0;
+            foreach (var enemy in intentCombat.HittableEnemies)
+            {
+                var move = enemy.Monster?.NextMove;
+                if (move is null) continue;
+
+                AttackIntent? firstAttack = null;
+                foreach (var intent in move.Intents)
+                    if (intent is AttackIntent attack && attack.DamageCalc is not null)
+                    {
+                        firstAttack = attack;
+                        break;
+                    }
+
+                if (firstAttack is null) continue;
+                totalIntentDamage += (int)(firstAttack.DamageCalc() * firstAttack.Repeats);
+            }
+
+            if (totalIntentDamage <= 0) return true;
+            await DamageCmd.Attack(totalIntentDamage * intentScale)
+                .FromCard(context.Card, context.CardPlay)
+                .TargetingAllOpponents(intentCombat)
+                .WithHitFx("vfx/vfx_attack_slash")
+                .Execute(context.ChoiceContext);
+            return true;
+        }
+
         // ★ A9 伤害随遗忘堆牌数缩放（本体「不再幼稚的我」）
         if (context.RuntimeSpec.Variant == SakiComponents.DamageByForgetPileVariant)
         {
@@ -1682,6 +2132,33 @@ internal sealed class ScaleByPressureHandler : IComponentRuntimeHandler
                 .Targeting(context.Target ?? context.CardPlay.Target)
                 .WithHitFx("vfx/vfx_attack_slash")
                 .Execute(context.ChoiceContext);
+            return true;
+        }
+
+        // ★ 2026-11-14：伤害＝目标压力层数 × N（本体 Symbol II）。
+        //   此前没分支，掉到最后一行变成「获得格挡」。
+        if (context.RuntimeSpec.Variant == SakiComponents.DamageByTargetPressureVariant)
+        {
+            var pressureTarget = context.Target ?? context.CardPlay.Target;
+            var targetPressure = pressureTarget?.GetPower<PressurePower>()?.Amount ?? 0;
+            var targetDamage = Math.Max(4, (int)targetPressure * multiplier);
+            await DamageCmd.Attack(targetDamage)
+                .FromCard(context.Card, context.CardPlay)
+                .Targeting(pressureTarget)
+                .WithHitFx("vfx/vfx_attack_slash")
+                .Execute(context.ChoiceContext);
+            return true;
+        }
+
+        // ★ 2026-11-14：消耗全部压力换能量（本体「于夜中重燃斗志」的 1:1 版）。
+        //   此前没分支，掉到最后一行变成「获得格挡」。
+        if (context.RuntimeSpec.Variant == SakiComponents.SpendAllPressureEnergyOneVariant)
+        {
+            var allPower = owner.Creature?.GetPower<PressurePower>();
+            var allCurrent = allPower?.Amount ?? 0;
+            if (allPower is null || allCurrent <= 0) return true;
+            await PowerCmd.ModifyAmount(context.ChoiceContext, allPower, -allCurrent, owner.Creature!, context.Card);
+            PlayerCmd.GainEnergy((int)allCurrent, owner);
             return true;
         }
 
@@ -2002,6 +2479,31 @@ internal sealed class TokenCardHandler : IComponentRuntimeHandler
             return true;
         }
 
+        // ★ 2026-11-14：升级猫咪（文本「将1张猫咪加入手牌，并升级战斗中所有猫咪」）。
+        //   此前没有分支，落到下面 keywordId=null 的早退 → 整张卡什么也不做。
+        if (context.RuntimeSpec.Variant == SakiComponents.TokenUpgradeNekoVariant)
+        {
+            var upgradeKw = CutesakiKeywords.Neko.GetModCardKeyword();
+            var upgradeTemplate = ModelDb.CardPool<CuteSakikoTokenCardPool>()
+                .GetUnlockedCards(owner.UnlockState, runState.CardMultiplayerConstraint)
+                .FirstOrDefault(card => card.Keywords.Contains(upgradeKw));
+            if (upgradeTemplate is not null)
+            {
+                var addedCat = combat.CreateCard(upgradeTemplate, owner);
+                if (addedCat is not null)
+                    await CardPileCmd.AddGeneratedCardToCombat(addedCat, PileType.Hand, owner);
+            }
+
+            foreach (var pileType in new[] { PileType.Hand, PileType.Draw, PileType.Discard, PileType.Exhaust })
+            {
+                var pile = pileType.GetPile(owner);
+                if (pile is null) continue;
+                foreach (var cat in pile.Cards.Where(card => card.Keywords.Contains(upgradeKw) && card.IsUpgradable).ToList())
+                    CardCmd.Upgrade(cat);
+            }
+            return true;
+        }
+
         var isSword = context.RuntimeSpec.Variant == SakiComponents.TokenSwordVariant;
         var keywordId = context.RuntimeSpec.Variant switch
         {
@@ -2128,6 +2630,19 @@ internal sealed class ParfaitHandler : IComponentRuntimeHandler
             return true;
         }
 
+        // ★ 乐「买芭菲」：花金币买 1 杯（本体 BuyParfait：金币不足不可打出 →
+        //   随机卡没法制造成不可打出，改成「金币不足就什么也不发生」）。
+        //   2026-11-14：此前 buy 掉进 default 的「吃一杯」，花的是杯数而不是金币。
+        if (context.RuntimeSpec.Variant == SakiComponents.ParfaitBuyVariant)
+        {
+            if (relic is null) return true;
+            var price = Math.Max(1, amount);
+            if (owner.Gold < price) return true;
+            await PlayerCmd.LoseGold(price, owner);
+            MatchaParfait.AddCharges(relic, 1);
+            return true;
+        }
+
         if (relic is null) return true;
         await MatchaParfait.RemoveCharges(relic, amount, context.ChoiceContext);
         return true;
@@ -2224,7 +2739,20 @@ internal static class SakiPresentation
             () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
         new(SakiComponents.PressureOpcode, SakiComponents.PressureAllVariant, new SimpleTips(
             () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
+        new(SakiComponents.PressureOpcode, SakiComponents.PressureSelfVariant, new SimpleTips(
+            () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
+        new(SakiComponents.PressureOpcode, SakiComponents.DoubleTargetPressureVariant, new SimpleTips(
+            () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
+        new(SakiComponents.PressureOpcode, SakiComponents.SpreadTargetPressureVariant, new SimpleTips(
+            () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
+        new(SakiComponents.PressureOpcode, SakiComponents.ConsumeTargetPressureHitsVariant, new SimpleTips(
+            () => Tips(Power<PressurePower>(null), Power<BreakDownPower>(null)))),
 
+        // 2026-11-14：负向能力（失去力量）。
+        new(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthVariant, new SimpleTips(
+            () => Tips(Power<StrengthPower>(null)))),
+        new(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthAllVariant, new SimpleTips(
+            () => Tips(Power<StrengthPower>(null)))),
         // 遗忘 / 回忆：祥子专属关键词。
         // ★ 2026-11-11 用户口径：**Memory 是卡牌用，Memorysaki 是遗物用**；
         //   卡牌悬浮提示要用 Memory，不要用 Memorysaki。
@@ -2236,12 +2764,67 @@ internal static class SakiPresentation
                        Keyword(() => CutesakiKeywords.Sakiforget.GetModCardKeyword())))),
         new(SakiComponents.RecallOpcode, SakiComponents.RecallVariant, new SimpleTips(
             () => Tips(Keyword(() => CutesakiKeywords.Memory.GetModCardKeyword())))),
+        new(SakiComponents.RecallOpcode, SakiComponents.RecallReplayVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Memory.GetModCardKeyword())))),
 
         // 和弦 / 音符：爱音专属关键词
         new(SakiComponents.PlayChordOpcode, SakiComponents.PlayChordStoredVariant, new SimpleTips(
             () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
                        Keyword(() => CutesakiKeywords.EquippedChords.GetModCardKeyword())))),
         new(SakiComponents.PlayChordOpcode, SakiComponents.PlayChordRandomVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        // ★ 2026-11-14：聪明阿侬（学习和弦）/ 即兴演奏（演奏已学会和弦）
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordLearnRandomVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonCVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonDVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonEVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonFVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveAnonGVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveGreyVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordExclusiveHekitenVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonCVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonDVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonEVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonFVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockAnonGVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockGreyVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordSelectPlayVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordStrumNotesVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Noteify.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordUnlockHekitenVariant, new SimpleTips(
+            () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
+                       Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
+        new(SakiComponents.PlayChordOpcode, SakiComponents.ChordPlayLearnedVariant, new SimpleTips(
             () => Tips(Keyword(() => CutesakiKeywords.Chord.GetModCardKeyword()),
                        Keyword(() => CutesakiKeywords.LearnedChords.GetModCardKeyword())))),
         new(SakiComponents.NoteOpcode, SakiComponents.NoteAddAttackVariant, new SimpleTips(

@@ -1325,6 +1325,9 @@ internal static class RandomDefinitionBuilder
     private static int NumericCapFor(string opcode, string slotId)
     {
         var id = slotId ?? string.Empty;
+        // ★ 2026-11-14：压力按本体档位放宽（Glare 10 / NoWork 15 / AbsoluteAuthority 25），
+        //   否则 8/10/12/15 这些档位会被默认上限 6 夹回个位数。
+        if (opcode == SakiComponents.PressureOpcode) return 20;
         if (id == "damage") return 45;
         if (id == "block") return 40;
         if (id == "hits") return 6;

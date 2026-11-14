@@ -111,6 +111,24 @@ internal static class SakiAtomLibrary
         Atom("N:AllVulnerable", OperationScope.NonTargeted, $"给予所有敌人{amount}层[gold]易伤[/gold]。",
             $"Apply {amount} [gold]Vulnerable[/gold] to ALL enemies.", category: ComponentCategory.Status);
 
+    /// <summary>使目标失去 N 点力量（本体「消消气」；永久扣减，不是本回合）。</summary>
+    public static ComponentAtom LoseStrength(int amount) =>
+        SakiComponents.AtomWithSpec(SakiComponents.DebuffTemplate, OperationScope.SingleEnemyOnly,
+            $"使目标失去{amount}点[gold]力量[/gold]。",
+            $"The target loses {amount} [gold]Strength[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthVariant,
+                "selected_enemy", "amount", amount,
+                [ComponentSemanticFlags.Beneficial, "requires_single_target"]),
+            requiresSingleTarget: true, category: ComponentCategory.Status);
+
+    /// <summary>使所有敌人失去 N 点力量（本体「消消气」升级版）。</summary>
+    public static ComponentAtom LoseStrengthAll(int amount) =>
+        SakiComponents.AtomWithSpec(SakiComponents.DebuffTemplate + "_all", OperationScope.NonTargeted,
+            $"使所有敌人失去{amount}点[gold]力量[/gold]。",
+            $"ALL enemies lose {amount} [gold]Strength[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.DebuffOpcode, SakiComponents.LoseStrengthAllVariant,
+                "all_enemies", "amount", amount, [ComponentSemanticFlags.Beneficial]),
+            category: ComponentCategory.Status);
     public static ComponentAtom EnemiesLoseStrength(int amount) =>
         Atom("N:AllTempStrengthLoss", OperationScope.NonTargeted,
             $"所有敌人在本回合失去{amount}点[gold]力量[/gold]。",
@@ -350,7 +368,7 @@ internal static class SakiAtomLibrary
     public static ComponentAtom PressureSelf(int amount) =>
         SakiComponents.AtomWithSpec(SakiComponents.PressureTemplate, OperationScope.NonTargeted,
             $"获得{amount}层[gold]压力[/gold]。", $"Gain {amount} [gold]Pressure[/gold].",
-            SakiComponents.NumericSpec(SakiComponents.PressureOpcode, SakiComponents.PressureVariant,
+            SakiComponents.NumericSpec(SakiComponents.PressureOpcode, SakiComponents.PressureSelfVariant,
                 "self", "amount", amount, [ComponentSemanticFlags.Beneficial]),
             category: ComponentCategory.Status);
 
@@ -361,6 +379,43 @@ internal static class SakiAtomLibrary
             SakiComponents.NumericSpec(SakiComponents.PressureOpcode, SakiComponents.PressureAllVariant,
                 "all_enemies", "amount", amount, [ComponentSemanticFlags.Beneficial]),
             category: ComponentCategory.Status);
+
+    /// <summary>造成伤害，并把目标身上的压力翻倍（本体「心灵痛击」）。</summary>
+    public static ComponentAtom DamageDoubleTargetPressure(int damage) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PressureTemplate + "_double_target",
+            OperationScope.SingleEnemyOnly,
+            $"造成{damage}点伤害。使目标身上的[gold]压力[/gold]翻倍。",
+            $"Deal {damage} damage. Double the target's [gold]Pressure[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.PressureOpcode,
+                SakiComponents.DoubleTargetPressureVariant, "selected_enemy", "damage", damage,
+                [ComponentSemanticFlags.EnemyDamage, ComponentSemanticFlags.Beneficial,
+                 "requires_single_target"]),
+            requiresSingleTarget: true, category: ComponentCategory.Damage);
+
+    /// <summary>造成伤害，并把目标一半的压力平摊给其他敌人（本体「需要练习」）。</summary>
+    public static ComponentAtom DamageSpreadTargetPressure(int damage) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PressureTemplate + "_spread_target",
+            OperationScope.SingleEnemyOnly,
+            $"造成{damage}点伤害。使其他敌人获得目标身上一半的[gold]压力[/gold]。",
+            $"Deal {damage} damage. Other enemies gain half of the target's [gold]Pressure[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.PressureOpcode,
+                SakiComponents.SpreadTargetPressureVariant, "selected_enemy", "damage", damage,
+                [ComponentSemanticFlags.EnemyDamage, ComponentSemanticFlags.Beneficial,
+                 "requires_single_target"]),
+            requiresSingleTarget: true, category: ComponentCategory.Damage);
+
+    /// <summary>造成伤害；目标每 N 层压力消耗之并额外造成 1 次伤害（本体「生气了」）。</summary>
+    public static ComponentAtom DamageConsumeTargetPressureHits(int damage, int need) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PressureTemplate + "_consume_target",
+            OperationScope.SingleEnemyOnly,
+            $"造成{damage}点伤害。目标每拥有{need}层[gold]压力[/gold]，就消耗其[gold]压力[/gold]并额外造成1次伤害。",
+            $"Deal {damage} damage. Every {need} [gold]Pressure[/gold] on the target is consumed to deal 1 more hit.",
+            SakiComponents.TwoSlotSpec(SakiComponents.PressureOpcode,
+                SakiComponents.ConsumeTargetPressureHitsVariant, "selected_enemy",
+                "damage", damage, "need", need,
+                [ComponentSemanticFlags.EnemyDamage, ComponentSemanticFlags.Beneficial,
+                 "requires_single_target"]),
+            requiresSingleTarget: true, category: ComponentCategory.Damage);
 
     /// <summary>
     /// 遗忘（选择型）：**玩家选择**手牌中的 N 张遗忘。
@@ -391,6 +446,15 @@ internal static class SakiAtomLibrary
         SakiComponents.AtomWithSpec(SakiComponents.RecallTemplate, OperationScope.NonTargeted,
             $"获得{count}张[gold]回忆[/gold]。", $"Add {count} [gold]Memory[/gold] to your Hand.",
             SakiComponents.NumericSpec(SakiComponents.RecallOpcode, SakiComponents.RecallVariant,
+                "self", "count", count, ["replenishes_hand"]),
+            category: ComponentCategory.CardManipulation);
+
+    /// <summary>随机让你拥有的一张回忆获得重放 N（本体「背负回忆」）。</summary>
+    public static ComponentAtom MemoryReplay(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.RecallTemplate + "_replay", OperationScope.NonTargeted,
+            $"随机使你拥有的一张[gold]回忆[/gold]获得[gold]重放[/gold]{count}。",
+            $"A random [gold]Memory[/gold] you own gains [gold]Replay[/gold] {count}.",
+            SakiComponents.NumericSpec(SakiComponents.RecallOpcode, SakiComponents.RecallReplayVariant,
                 "self", "count", count, ["replenishes_hand"]),
             category: ComponentCategory.CardManipulation);
 
@@ -581,13 +645,28 @@ internal static class SakiAtomLibrary
     // 把 setup 和 payoff 写进同一句、同一个原子，就不会被拆开。
     // ─────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// ★ 2026-11-14：把「音符种类」写进一个隐藏槽（Explicit=false，不参与卡面）。
+    ///   问题：add_attack_damage / add_skill_block 这类复合并量把 count/damage 当槽，
+    ///   种类只体现在文案图标里；运行时 handler 只能看到 variant，
+    ///   于是「获得1个技能音符」实际发的是攻击音符（SakiAtomUniverse 里
+    ///   AddNoteAndDamage(1, Skill, 5)、AddNoteAndBlock(1, Power, 5) 等就是这种）。
+    ///   隐藏槽给 handler 还原种类用：0=Attack / 1=Skill / 2=Power / 3=Special。
+    /// </summary>
+    private static OperationRuntimeSpec WithNoteKind(OperationRuntimeSpec spec, NoteKind kind) =>
+        spec with
+        {
+            Values = [.. spec.Values,
+                new RuntimeValueSlot("note_kind", (int)kind, Upgradable: false, Explicit: false)]
+        };
+
     /// <summary>获得 N 个音符，造成 M 点伤害。</summary>
     public static ComponentAtom AddNoteAndDamage(int count, NoteKind kind, int damage) =>
         SakiComponents.AtomWithSpec(SakiComponents.NoteTemplate, OperationScope.SingleEnemyOnly,
             $"获得{count}{Icon(NoteIconName(kind))}，造成{damage}点伤害。",
             $"Gain {count} {kind} Note and deal {damage} damage.",
-            SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndDamageVariant,
-                "selected_enemy", "count", count, "damage", damage, []),
+            WithNoteKind(SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndDamageVariant,
+                "selected_enemy", "count", count, "damage", damage, []), kind),
             category: ComponentCategory.Damage);
 
     /// <summary>获得 N 个音符，获得 M 点格挡。</summary>
@@ -595,8 +674,8 @@ internal static class SakiAtomLibrary
         SakiComponents.AtomWithSpec(SakiComponents.NoteTemplate, OperationScope.NonTargeted,
             $"获得{count}{Icon(NoteIconName(kind))}，获得{block}点[gold]格挡[/gold]。",
             $"Gain {count} {kind} Note and gain {block} [gold]Block[/gold].",
-            SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndBlockVariant,
-                "self", "count", count, "block", block, []),
+            WithNoteKind(SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndBlockVariant,
+                "self", "count", count, "block", block, []), kind),
             category: ComponentCategory.Defense);
 
     /// <summary>获得 N 个音符，并抽 M 张牌。</summary>
@@ -604,8 +683,8 @@ internal static class SakiAtomLibrary
         SakiComponents.AtomWithSpec(SakiComponents.NoteTemplate + "_draw", OperationScope.NonTargeted,
             $"获得{count}{Icon(NoteIconName(kind))}，抽{draw}张牌。",
             $"Gain {count} {kind} Note and draw {draw}.",
-            SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndDrawVariant,
-                "self", "count", count, "draw", draw, []),
+            WithNoteKind(SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndDrawVariant,
+                "self", "count", count, "draw", draw, []), kind),
             category: ComponentCategory.Resource);
 
     /// <summary>获得 N 个音符，并获得 M 点能量。</summary>
@@ -613,8 +692,8 @@ internal static class SakiAtomLibrary
         SakiComponents.AtomWithSpec(SakiComponents.NoteTemplate + "_energy", OperationScope.NonTargeted,
             $"获得{count}{Icon(NoteIconName(kind))}，获得{{energyPrefix:energyIcons({energy})}}。",
             $"Gain {count} {kind} Note and gain {energy} energy.",
-            SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndEnergyVariant,
-                "self", "count", count, "energy", energy, []),
+            WithNoteKind(SakiComponents.TwoSlotSpec(SakiComponents.NoteOpcode, SakiComponents.NoteAndEnergyVariant,
+                "self", "count", count, "energy", energy, []), kind),
             category: ComponentCategory.Resource);
 
     /// <summary>食用 N 杯芭菲，抽 M 张牌。</summary>
@@ -677,6 +756,84 @@ internal static class SakiAtomLibrary
                 "self", "count", count, []),
             category: ComponentCategory.Resource);
 
+    /// <summary>
+    /// 爱音专属和弦原子：解锁（AddTemporaryChord）+ 立即演奏。
+    /// 隐藏数值槽只用于估值，不进卡面（Explicit=false）。
+    /// 本体这 7 个和弦只能靠牌组里的和弦卡解锁，随机卡没有和弦卡，所以必须自己解锁。
+    /// </summary>
+    public static ComponentAtom ExclusiveChord(string variant, string chineseName, string englishName)
+    {
+        var baseSpec = SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, variant, "self", "count", 1, []);
+        var hiddenSpec = baseSpec with
+        {
+            Values = [baseSpec.Values[0] with { Upgradable = false, Explicit = false }]
+        };
+        return SakiComponents.AtomWithSpec(SakiComponents.PlayChordTemplate + "_" + variant,
+            OperationScope.NonTargeted,
+            $"解锁并演奏[gold]{chineseName}[/gold]。",
+            $"Unlock and perform {englishName}.",
+            hiddenSpec,
+            category: ComponentCategory.Utility);
+    }
+
+    /// <summary>选择并演奏任意 N 种和弦（本体「连接之锚」）。</summary>
+    public static ComponentAtom SelectAndPlayChords(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PlayChordTemplate + "_select", OperationScope.NonTargeted,
+            $"选择并演奏任意{count}种[gold]和弦[/gold]。",
+            $"Choose and perform any {count} [gold]Chord[/gold](s).",
+            SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordSelectPlayVariant,
+                "self", "count", count, []),
+            category: ComponentCategory.Resource);
+
+    /// <summary>选择并触发 N 个音符（本体「扫弦」）。</summary>
+    public static ComponentAtom StrumNotes(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.NoteTemplate + "_strum", OperationScope.NonTargeted,
+            $"选择并触发{count}个[gold]音符[/gold]。",
+            $"Choose and trigger {count} [gold]Note[/gold](s).",
+            SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordStrumNotesVariant,
+                "self", "count", count, []),
+            category: ComponentCategory.Resource);
+    /// <summary>只解锁不演奏（2026-11-14）：把专属和弦塞进临时和弦池，留给后续演奏。</summary>
+    public static ComponentAtom ExclusiveChordUnlock(string variant, string chineseName, string englishName)
+    {
+        var baseSpec = SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, variant, "self", "count", 1, []);
+        var hiddenSpec = baseSpec with
+        {
+            Values = [baseSpec.Values[0] with { Upgradable = false, Explicit = false }]
+        };
+        return SakiComponents.AtomWithSpec(SakiComponents.PlayChordTemplate + "_" + variant,
+            OperationScope.NonTargeted,
+            $"解锁[gold]{chineseName}[/gold]。",
+            $"Unlock {englishName}.",
+            hiddenSpec,
+            category: ComponentCategory.Utility);
+    }
+    /// <summary>
+    /// 学习 N 个随机新和弦（本体「聪明阿侬」）。
+    /// ★ 只能学到基础和弦：本体 LearnRandomChords 只从 Major/Minor/Dominant 三个分类取，
+    ///   并过滤 IsTemporaryOnly；爱音专属和弦（Anon*，靠和弦卡在牌组里解锁）学不到。
+    /// </summary>
+    public static ComponentAtom LearnRandomChords(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PlayChordTemplate + "_learn", OperationScope.NonTargeted,
+            $"学习{count}个新的[gold]和弦[/gold]。",
+            $"Learn {count} new [gold]Chord[/gold](s).",
+            SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordLearnRandomVariant,
+                "self", "count", count, []),
+            category: ComponentCategory.CardManipulation);
+
+    /// <summary>
+    /// 随机演奏你已学会的 N 个和弦（本体「即兴演奏」的随机侧等价）。
+    /// 本体遍历牌组里带 Chord 关键词的 CuteAnonCard；随机池没有和弦卡，
+    /// 改用玩家「已学会和弦」库，语义一致且不会变成空卡。
+    /// </summary>
+    public static ComponentAtom PlayLearnedChords(int count) =>
+        SakiComponents.AtomWithSpec(SakiComponents.PlayChordTemplate + "_learned", OperationScope.NonTargeted,
+            $"随机演奏你已解锁的{count}个[gold]和弦[/gold]。",
+            $"Randomly perform {count} [gold]Chord[/gold](s) you have unlocked.",
+            SakiComponents.NumericSpec(SakiComponents.PlayChordOpcode, SakiComponents.ChordPlayLearnedVariant,
+                "self", "count", count, []),
+            category: ComponentCategory.Resource);
+
     /// <summary>演奏 N 次最后储存的和弦。</summary>
     public static ComponentAtom PlayLastChord(int count) =>
         SakiComponents.AtomWithSpec(SakiComponents.ChordLastTemplate, OperationScope.NonTargeted,
@@ -708,13 +865,32 @@ internal static class SakiAtomLibrary
     /// 获得 2 点能量。★ 槽 id 必须叫 `energy`：AA 的命名本地化模板用
     /// `[[energy:energy]]` 这个 token，校验时会去找 **id 为 energy 的数值槽**，
     /// 找不到就报 "Chinese operation template references missing slot energy"（2026-11-10 实测）。
+    ///
+    /// ★★ 2026-11-14「获得1。」根因（用户实机截图，Skill 1 费，卡面只剩「获得1。」）：
+    ///   AA 运行时卡面由 <c>ChaosRuntimeDescriptionRenderer</c> 重渲染，
+    ///   <c>ChaosOperationVariables.InsertToken</c> 只对**原生能量模板**
+    ///   （N:E / N:NextTurnEnergy / D:GainEnergy …）走 energyIcons 分支；
+    ///   我们的自建模板 `csk:energy_gain_two` 会掉进通用分支，
+    ///   把「第一个可升级固定槽」的整段渲染字面量（这里是「2点能量」）
+    ///   替换成 `{Amount0:diff()}` → 名词被吞，卡面只剩「获得2。」/「获得1。」。
+    ///   ⇒ 把能量槽标成 **Upgradable:false**：TryGetInitialSlot 跳过它，
+    ///     InsertToken 不再改文案；随后 Render() 末尾的
+    ///     NormalizeRenderedChineseEnergyNotation 会把「2点能量」换成
+    ///     `{energyPrefix:energyIcons(2)}`，走本体能量图标（和原生卡一致）。
+    ///   ⚠️ 不要为了「让数值能升级」把 Upgradable 改回 true，否则「获得N。」会复现。
     /// </summary>
-    public static ComponentAtom EnergyGainTwo() =>
-        SakiComponents.AtomWithSpec("csk:energy_gain_two", OperationScope.NonTargeted,
-            "获得2点能量。", "Gain 2 Energy.",
-            SakiComponents.NumericSpec(SakiComponents.EnergyOpcode, SakiComponents.EnergyGainTwoVariant,
-                "self", "energy", 2, []),
+    public static ComponentAtom EnergyGainTwo()
+    {
+        var baseSpec = SakiComponents.NumericSpec(SakiComponents.EnergyOpcode,
+            SakiComponents.EnergyGainTwoVariant, "self", "energy", 2, []);
+        var fixedSpec = baseSpec with
+        {
+            Values = [baseSpec.Values[0] with { Upgradable = false }]
+        };
+        return SakiComponents.AtomWithSpec("csk:energy_gain_two", OperationScope.NonTargeted,
+            "获得2点能量。", "Gain 2 Energy.", fixedSpec,
             category: ComponentCategory.Resource);
+    }
 
     /// <summary>下回合获得两点能量（自建）。</summary>
     public static ComponentAtom EnergyNextTurnTwo() =>
@@ -1247,13 +1423,25 @@ internal static class SakiAtomLibrary
             category: ComponentCategory.Damage);
 
     /// <summary>打出手牌中所有骑士之剑（本体「由我君临」）。</summary>
-    public static ComponentAtom PlayAllSwords(int bonus) =>
-        SakiComponents.AtomWithSpec(SakiComponents.TokenTemplate + "_play_swords", OperationScope.NonTargeted,
-            $"打出手牌中所有[gold]骑士之剑[/gold]，每张额外打出{bonus}次。",
-            $"Play every [gold]Knight Sword[/gold] in your hand; each plays {bonus} extra time(s).",
-            SakiComponents.NumericSpec(SakiComponents.TokenOpcode, SakiComponents.TokenPlayAllSwordsVariant,
-                "self", "count", bonus, []),
-            category: ComponentCategory.Damage);
+    /// <remarks>
+    /// ★ 2026-11-14：原来文案写「每张额外打出{bonus}次」，池子里只用 bonus=0
+    ///   → 卡面出现「每张额外打出0次」这种废话。改为不写次数，数值槽隐藏
+    ///   （Explicit=false，不进卡面文本，只给 handler 读）。
+    /// </remarks>
+    public static ComponentAtom PlayAllSwords(int bonus)
+    {
+        var baseSpec = SakiComponents.NumericSpec(SakiComponents.TokenOpcode,
+            SakiComponents.TokenPlayAllSwordsVariant, "self", "count", bonus, []);
+        var hidden = baseSpec with
+        {
+            Values = [baseSpec.Values[0] with { Upgradable = false, Explicit = false }]
+        };
+        return SakiComponents.AtomWithSpec(SakiComponents.TokenTemplate + "_play_swords",
+            OperationScope.NonTargeted,
+            "打出手牌中所有[gold]骑士之剑[/gold]。",
+            "Play every [gold]Knight Sword[/gold] in your hand.",
+            hidden, category: ComponentCategory.Damage);
+    }
 
     /// <summary>打出手牌中所有骑士之剑，再消耗全部压力追加等量伤害（本体「以压力化利刃」）。</summary>
     public static ComponentAtom SwordPressureDamage(int minimum) =>
@@ -1356,6 +1544,33 @@ internal static class SakiAtomLibrary
                 "selected_enemy", "count", minimum, []),
             requiresSingleTarget: true,
             category: ComponentCategory.Automatic);
+
+    /// <summary>
+    /// 对所有敌人造成等同于其攻击意图总和 N 倍的伤害（本体「快速学习」）。
+    /// 本体实现：每个敌人取其第一个攻击意图 × 攻击次数，累加后对全体敌人出伤。
+    /// </summary>
+    public static ComponentAtom DamageByEnemyIntent(int multiplier) =>
+        SakiComponents.AtomWithSpec(SakiComponents.ScaleTemplate + "_intent",
+            OperationScope.NonTargeted,
+            $"对所有敌人造成等同于他们攻击意图总和{multiplier}倍的伤害。",
+            $"Deal damage equal to {multiplier}x the total damage of all enemies' attack intents.",
+            SakiComponents.NumericSpec(SakiComponents.ScaleOpcode, SakiComponents.DamageByIntentVariant,
+                "all_enemies", "multiplier", multiplier, []),
+            category: ComponentCategory.Damage);
+
+    /// <summary>
+    /// 清除所有敌人的格挡，再造成等同于自身（清除前）格挡值 N 倍的伤害（本体「把衣服剪开」）。
+    /// 本体：未升级减半所有人生效、升级清除所有敌人格挡；随机池统一用「清除敌人格挡」的升级版行为。
+    /// </summary>
+    public static ComponentAtom BlockSlash(int multiplier) =>
+        SakiComponents.AtomWithSpec(SakiComponents.ScaleTemplate + "_block_slash",
+            OperationScope.SingleEnemyOnly,
+            $"清除所有敌人的[gold]格挡[/gold]，然后造成等同于你当前[gold]格挡[/gold]值{multiplier}倍的伤害。",
+            $"Remove all enemies' [gold]Block[/gold], then deal damage equal to {multiplier}x your [gold]Block[/gold].",
+            SakiComponents.NumericSpec(SakiComponents.ScaleOpcode, SakiComponents.BlockSlashVariant,
+                "selected_enemy", "multiplier", multiplier, []),
+            requiresSingleTarget: true,
+            category: ComponentCategory.Damage);
 
     /// <summary>消耗手牌中所有猫咪，每张对随机敌人造成 N 点伤害（本体「猫咪大冲击」）。</summary>
     public static ComponentAtom ConsumeNekoDamage(int damage) =>

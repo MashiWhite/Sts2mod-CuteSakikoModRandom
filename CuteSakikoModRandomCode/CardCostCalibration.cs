@@ -99,7 +99,16 @@ internal static class CardCostCalibration
         "gain_block" => value * 0.6,
         "draw_cards" => value * 4.0,
         "csk_energy" => value * 8.0,
-        "csk_pressure" => value * 0.8,
+        // 自增压力是「增幅资源」，比给敌人压力略低（与 SakiValuations 的 0.8× 对齐）；
+        // 伤害 + 压力联动的三种变体按伤害计分。
+        "csk_pressure" => variant switch
+        {
+            SakiComponents.PressureSelfVariant => value * 0.65,
+            SakiComponents.DoubleTargetPressureVariant
+                or SakiComponents.SpreadTargetPressureVariant
+                or SakiComponents.ConsumeTargetPressureHitsVariant => value * 1.0,
+            _ => value * 0.8
+        },
         "csk_scale" => value * 2.5,
         "csk_power" => value * 3.0,
         "csk_play_chord" => value * 3.0,

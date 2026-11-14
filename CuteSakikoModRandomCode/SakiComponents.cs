@@ -19,6 +19,20 @@ public static class SakiComponents
     public const string PressureOpcode = "csk_pressure";
     public const string PressureVariant = "apply";
     public const string PressureAllVariant = "apply_all";
+    /// <summary>
+    /// 自增压力（给自己）。★ 2026-11-14 用户口径：自增压力不算完全负面，
+    /// 它是压力消耗类「增幅」卡片的资源 → 估值给**略低于给敌人**的正面价值
+    /// （见 SakiValuations：apply_self = PressureUnit × 0.8）。
+    /// 拆独立变体的原因：AA 的估值路由只认 opcode+variant，共用 apply 就没法
+    /// 给两种目标不同的价值。
+    /// </summary>
+    public const string PressureSelfVariant = "apply_self";
+    /// <summary>造成伤害并把目标身上的压力翻倍（本体「心灵痛击」）。</summary>
+    public const string DoubleTargetPressureVariant = "double_target_pressure";
+    /// <summary>造成伤害，并把目标一半压力平摊给其他敌人（本体「需要练习」）。</summary>
+    public const string SpreadTargetPressureVariant = "spread_target_pressure";
+    /// <summary>造成伤害；目标每 N 层压力消耗之并额外造成 1 次伤害（本体「生气了」）。</summary>
+    public const string ConsumeTargetPressureHitsVariant = "consume_target_pressure_hits";
 
     // ── 记忆（Memory）：祥子的牌堆外资源 ──
     // 把牌「遗忘」进遗忘堆，并减少压力；或从记忆堆「回忆」回手牌。
@@ -31,6 +45,8 @@ public static class SakiComponents
     public const string RecallTemplate = "csk:recall";
     public const string RecallOpcode = "csk_recall";
     public const string RecallVariant = "random";
+    /// <summary>随机让一张回忆获得重放 N（本体「背负回忆」）。</summary>
+    public const string RecallReplayVariant = "memory_replay";
 
     // ── 和弦（Chord）：爱音的主资源 ──
     // 演奏已储存的和弦；储存/学习统一走和弦存储能力。
@@ -140,6 +156,46 @@ public static class SakiComponents
     public const string ChordRememberVariant = "remember";
     /// <summary>随机储存 N 个「已记忆」和弦（2026-11-13 拆分自 remember）。</summary>
     public const string ChordStoreRandomVariant = "store_random";
+    /// <summary>
+    /// 学习 N 个随机新和弦（本体「聪明阿侬」）。
+    /// ★ 2026-11-14：学的是玩家的「已学会和弦」库（ChordStorageCapability），不是往牌组加卡，
+    ///   所以在随机卡池里同样有效，而且能和下面的 play_learned 组成 combo。
+    /// </summary>
+    public const string ChordLearnRandomVariant = "learn_random";
+    /// <summary>
+    /// 从「已学会的和弦」里随机演奏 N 个（本体「即兴演奏」的随机侧等价）。
+    /// ★ 本体「即兴演奏」遍历的是牌组里带 Chord 关键词的 CuteAnonCard（要靠 ChordId），
+    ///   随机池没有这种卡、随机卡也不是 CuteAnonCard，照搬会变成空卡；
+    ///   改用「已学会和弦」后语义一致且永远有事可做。
+    /// </summary>
+    public const string ChordPlayLearnedVariant = "play_learned";
+    /// <summary>
+    /// 爱音专属和弦（AnonC/D/E/F/G、灰爱音、碧天伴走）：本体用 AddTemporaryChord 注册，
+    /// 只能靠牌组里的“和弦卡”解锁；随机卡想直接用，必须自己解锁再演奏。
+    /// 每个和弦一个变体，卡面就是「解锁并演奏[gold]和弦名[/gold]。」。
+    /// </summary>
+    public const string ChordExclusiveAnonCVariant = "exclusive_anon_c";
+    public const string ChordExclusiveAnonDVariant = "exclusive_anon_d";
+    public const string ChordExclusiveAnonEVariant = "exclusive_anon_e";
+    public const string ChordExclusiveAnonFVariant = "exclusive_anon_f";
+    public const string ChordExclusiveAnonGVariant = "exclusive_anon_g";
+    public const string ChordExclusiveGreyVariant = "exclusive_grey_anon";
+    public const string ChordExclusiveHekitenVariant = "exclusive_hekiten";
+    /// <summary>
+    /// 同上的「只解锁不演奏」版本（2026-11-14 用户口径）：只把和弦塞进临时和弦池，
+    /// 留给后续「按和弦数演奏」的卡／原子去用。
+    /// </summary>
+    public const string ChordUnlockAnonCVariant = "unlock_anon_c";
+    public const string ChordUnlockAnonDVariant = "unlock_anon_d";
+    public const string ChordUnlockAnonEVariant = "unlock_anon_e";
+    public const string ChordUnlockAnonFVariant = "unlock_anon_f";
+    public const string ChordUnlockAnonGVariant = "unlock_anon_g";
+    public const string ChordUnlockGreyVariant = "unlock_grey_anon";
+    public const string ChordUnlockHekitenVariant = "unlock_hekiten";
+    /// <summary>选择并演奏 N 种和弦（本体「连接之锚」，复用本体的和弦选择界面）。</summary>
+    public const string ChordSelectPlayVariant = "select_play";
+    /// <summary>选择并触发 N 个音符（本体「扫弦」，复用本体的音符选择网格）。</summary>
+    public const string ChordStrumNotesVariant = "strum_notes";
     public const string ChordLastVariant = "play_last";
     /// <summary>获得随机和弦槽位；若已有则演奏（本体「团队的小太阳」等 6 张卡的机制）。</summary>
     public const string ChordGrantSlotVariant = "grant_slot";
@@ -179,6 +235,10 @@ public static class SakiComponents
     public const string DamageByForgetPileVariant = "damage_by_forget_pile";
     /// <summary>造成等同于自身格挡值的伤害（本体「把衣服剪开」）。</summary>
     public const string DamageByBlockVariant = "damage_by_block";
+    /// <summary>清除所有敌人的格挡，然后造成等同于自身格挡值 N 倍的伤害（本体「把衣服剪开」）。</summary>
+    public const string BlockSlashVariant = "block_slash";
+    /// <summary>对所有敌人造成等同于其攻击意图总和 N 倍的伤害（本体「快速学习」）。</summary>
+    public const string DamageByIntentVariant = "damage_by_intent";
     /// <summary>造成等同于目标压力层数 N 倍的伤害（本体「Symbol II」「生气了」）。</summary>
     public const string DamageByTargetPressureVariant = "damage_by_target_pressure";
     /// <summary>造成等同于「琴奏」牌数量 N 倍的伤害。</summary>
@@ -213,6 +273,17 @@ public static class SakiComponents
     // 生成状态牌（C 项「生成状态牌进牌堆」，2026-11-10）
     public const string StatusTemplate = "csk:status";
     public const string StatusOpcode = "csk_status";
+    /// <summary>
+    /// 负向能力（扣减目标的能力层数）。
+    /// ★ 2026-11-14：`csk_power` 只接正向能力、AA 原生 apply_power 只吃正数，
+    ///   所以「使目标失去 N 点力量」（本体「消消气」）单独开一条 opcode。
+    /// </summary>
+    public const string DebuffTemplate = "csk:debuff";
+    public const string DebuffOpcode = "csk_debuff";
+    /// <summary>使目标失去 N 点力量。</summary>
+    public const string LoseStrengthVariant = "lose_strength";
+    /// <summary>使所有敌人失去 N 点力量（本体「消消气」升级版）。</summary>
+    public const string LoseStrengthAllVariant = "lose_strength_all";
     /// <summary>改敌人意图（T-024）。</summary>
     public const string IntentOpcode = "csk_intent";
     /// <summary>能量（自建，文案用中文数字，避免 AA 生成 {Energy0:energyIcons()} 后无人替换）。</summary>
@@ -370,13 +441,40 @@ public static class SakiComponents
     /// <summary>所有由本模组拥有的 opcode/variant 对，用于启动自检与路由注册。</summary>
     public static readonly (string Opcode, string Variant)[] OwnedRoutes =
     [
+        (DebuffOpcode, LoseStrengthVariant),
+        (DebuffOpcode, LoseStrengthAllVariant),
         (PressureOpcode, PressureVariant),
         (PressureOpcode, PressureAllVariant),
+        (PressureOpcode, PressureSelfVariant),
+        (PressureOpcode, DoubleTargetPressureVariant),
+        (PressureOpcode, SpreadTargetPressureVariant),
+        (PressureOpcode, ConsumeTargetPressureHitsVariant),
         (ForgetOpcode, ForgetVariant),
         (ForgetOpcode, ForgetRandomVariant),
         (RecallOpcode, RecallVariant),
+        (RecallOpcode, RecallReplayVariant),
+        (ScaleOpcode, BlockSlashVariant),
+        (ScaleOpcode, DamageByIntentVariant),
         (PlayChordOpcode, PlayChordStoredVariant),
         (PlayChordOpcode, PlayChordRandomVariant),
+        (PlayChordOpcode, ChordLearnRandomVariant),
+        (PlayChordOpcode, ChordPlayLearnedVariant),
+        (PlayChordOpcode, ChordExclusiveAnonCVariant),
+        (PlayChordOpcode, ChordExclusiveAnonDVariant),
+        (PlayChordOpcode, ChordExclusiveAnonEVariant),
+        (PlayChordOpcode, ChordExclusiveAnonFVariant),
+        (PlayChordOpcode, ChordExclusiveAnonGVariant),
+        (PlayChordOpcode, ChordExclusiveGreyVariant),
+        (PlayChordOpcode, ChordExclusiveHekitenVariant),
+        (PlayChordOpcode, ChordUnlockAnonCVariant),
+        (PlayChordOpcode, ChordUnlockAnonDVariant),
+        (PlayChordOpcode, ChordUnlockAnonEVariant),
+        (PlayChordOpcode, ChordUnlockAnonFVariant),
+        (PlayChordOpcode, ChordUnlockAnonGVariant),
+        (PlayChordOpcode, ChordUnlockGreyVariant),
+        (PlayChordOpcode, ChordUnlockHekitenVariant),
+        (PlayChordOpcode, ChordSelectPlayVariant),
+        (PlayChordOpcode, ChordStrumNotesVariant),
         (NoteOpcode, NoteAddAttackVariant),
         (NoteOpcode, NoteAddSkillVariant),
         (NoteOpcode, NoteAddPowerVariant),

@@ -160,6 +160,28 @@ internal static class SakiValuations
         new("csk_play_chord", "play_stored_damage", new LinearValuation(1400)),
         new("csk_play_chord", "random_memorized", new LinearValuation(1100)),
         new("csk_play_chord", "remember", new LinearValuation(1300)),
+        // ★ 2026-11-14（聪明阿侬 / 即兴演奏随机侧等价）
+        new("csk_play_chord", "learn_random", new LinearValuation(500)),
+        new("csk_play_chord", "play_learned", new LinearValuation(900)),
+        // ★ 2026-11-14 爱音专属和弦（解锁并演奏）：按各和弦强度定价（1 次）。
+        new("csk_play_chord", "exclusive_anon_c", new LinearValuation(1000)),
+        new("csk_play_chord", "exclusive_anon_d", new LinearValuation(700)),
+        new("csk_play_chord", "exclusive_anon_e", new LinearValuation(800)),
+        new("csk_play_chord", "exclusive_anon_f", new LinearValuation(1000)),
+        new("csk_play_chord", "exclusive_anon_g", new LinearValuation(800)),
+        new("csk_play_chord", "exclusive_grey_anon", new LinearValuation(750)),
+        new("csk_play_chord", "exclusive_hekiten", new LinearValuation(850)),
+        // ★ 2026-11-14 只解锁不演奏：价值约为演奏版的 40~50%（还没真正放出来）。
+        new("csk_play_chord", "unlock_anon_c", new LinearValuation(500)),
+        new("csk_play_chord", "unlock_anon_d", new LinearValuation(350)),
+        new("csk_play_chord", "unlock_anon_e", new LinearValuation(400)),
+        new("csk_play_chord", "unlock_anon_f", new LinearValuation(500)),
+        new("csk_play_chord", "unlock_anon_g", new LinearValuation(400)),
+        new("csk_play_chord", "unlock_grey_anon", new LinearValuation(380)),
+        new("csk_play_chord", "unlock_hekiten", new LinearValuation(420)),
+        // ★ 2026-11-14（连接之锚 / 扫弦）：选择型。
+        new("csk_play_chord", "select_play", new LinearValuation(950)),
+        new("csk_play_chord", "strum_notes", new LinearValuation(700)),
         new("csk_play_chord", "store_random", new LinearValuation(1250)),
         new("csk_play_chord", "grant_slot", new LinearValuation(1100)),
         new("csk_play_chord", "stored", new LinearValuation(1200)),
@@ -215,14 +237,31 @@ internal static class SakiValuations
         new("csk_power", "want_more_parfait", new LinearValuation(900)),
         new("csk_power", "weak_me_dead", new LinearValuation(900)),
         new("csk_power", "when_perform", new LinearValuation(900)),
-        new("csk_pressure", "apply", new LinearValuation(260)),
-        new("csk_pressure", "apply_all", new LinearValuation(120)),
+        new("csk_pressure", "apply", new LinearValuation((int)PressureUnit)),
+        new("csk_pressure", "apply_all", new LinearValuation((int)(PressureUnit * 0.6))),
+        // ★ 2026-11-14 用户口径：自增压力不是纯负面，它是压力消耗类「增幅」卡片的资源，
+        //   给**略低于给敌人**的正面价值（0.8×）。
+        new("csk_pressure", "apply_self", new LinearValuation((int)(PressureUnit * 0.8))),
+        // 伤害 + 目标压力联动（本体 心灵痛击 / 需要练习 / 生气了）：按伤害定价（≈100/点）+ 少量联动溢价。
+        new("csk_pressure", "double_target_pressure", new LinearValuation(120)),
+        new("csk_pressure", "spread_target_pressure", new LinearValuation(115)),
+        new("csk_pressure", "consume_target_pressure_hits", new LinearValuation(110)),
+        // ★ 2026-11-14（本体「消消气」）：使目标永久失去 N 点力量。
+        new("csk_debuff", "lose_strength", new LinearValuation(350)),
+        // 全体版按 AoE 折价（0.6×）。
+        new("csk_debuff", "lose_strength_all", new LinearValuation(210)),
         new("csk_recall", "random", new LinearValuation(550)),
+        // ★ 2026-11-14（本体「背负回忆」）：给一张已有的回忆 +1~2 重放。
+        new("csk_recall", "memory_replay", new LinearValuation(700)),
         new("csk_scale", "block_by_enemies", new LinearValuation(620)),
         new("csk_scale", "block_by_piano", new LinearValuation(820)),
         new("csk_scale", "block_by_pressure", new LinearValuation(820)),
         new("csk_scale", "block_by_stored_chords", new LinearValuation(660)),
         new("csk_scale", "damage_by_block", new LinearValuation(200)),
+        // ★ 2026-11-14（本体「把衣服剪开」升级版）：清敌人格挡 + 按自身格挡 ×N 出伤。
+        new("csk_scale", "block_slash", new LinearValuation(300)),
+        // ★ 2026-11-14（本体「快速学习」）：对全体出伤，伤害 = 敌人攻击意图总和 ×N。
+        new("csk_scale", "damage_by_intent", new LinearValuation(200)),
         new("csk_scale", "damage_by_forget_pile", new LinearValuation(700)),
         new("csk_scale", "damage_by_piano", new LinearValuation(900)),
         new("csk_scale", "damage_by_pressure", new LinearValuation(900)),

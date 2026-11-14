@@ -3,7 +3,7 @@
   "name": "[东尼算法]可爱小祥",
   "author": "MashiWhite",
   "description": "让可爱小祥的三个角色（祥子 / 爱音 / 乐奈）在开局时获得一整套随机卡池：卡名与稀有度沿用本体的语感与分布，效果由东尼算法的组件随机拼装。需要同时安装 AutoAnthony 与本模组。",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "min_game_version": "0.111.0",
   "has_pck": true,
   "has_dll": true,
