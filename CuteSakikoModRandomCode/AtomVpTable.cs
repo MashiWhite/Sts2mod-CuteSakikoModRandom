@@ -3,7 +3,7 @@ using ChaosCardGenerator;
 namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
 
 /// <summary>
-/// 原子 VP 表（P1 只读评估用）：按 `提示词\卡牌数值基准表.txt` §1 的系数，
+/// 原子 VP 表（P1 只读评估用）：按 `E:\SLJT2\提示词\本体\02-内容制作\卡牌数值基准表.txt` §1 的系数，
 /// 从 RuntimeSpec 的实际效果反算 VP。
 ///
 /// ★ 这张表**只用于 CardValuator 的日志**，不注册给 AA、不改生成行为。

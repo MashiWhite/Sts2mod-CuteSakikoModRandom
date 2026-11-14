@@ -8,10 +8,11 @@ namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
 /// ★★ 2026-11-11 回滚说明（A 方案实验失败，已恢复到此版本）：
 ///   曾尝试把 158 个变体改成「按本体 VP 反算的每单位估值」，
 ///   离线/实机都证明**只做估值不够**：真实 VP 让 AA 的 RaiseNumericRewardsToTopRarityFloor
-///   把计数器抬到 10 次演奏 / 10 个音符 / 8 层能力 / 55 格挡（见 AI工作日志 第 174 轮）。
+///   把计数器抬到 10 次演奏 / 10 个音符 / 8 层能力 / 55 格挡
+///   （见 `E:\SLJT2\AI工作日志\归档\AI工作日志-2026-10-26至2026-11-13.txt` 第 174 轮）。
 ///   ⇒ 在 `ScalableReward` 收紧 + 组卡补第二个 payoff + 预算带收缩三件一起做之前，
 ///     保留这张「按变体手写」的估值表（它同时承担了「让计数不爆炸」的职责）。
-///   完整的 VP 对照与后续方案见 `任务计划\原子VP对照表.md`。
+///   完整的 VP 对照与后续方案见 `E:\SLJT2\任务计划\东尼算法\资料\原子VP对照表.md`。
 /// </summary>
 internal static class SakiValuations
 {

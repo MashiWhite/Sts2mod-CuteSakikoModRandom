@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes;
@@ -30,12 +31,19 @@ internal static class RandomEarlyProgressPatch
 
     private static bool Prefix(
         NGame __instance,
+#if STS2_AT_LEAST_0_113_0
+        Player player,
+#else
         CharacterModel character,
+#endif
         bool shouldSave,
         IReadOnlyList<ActModel> acts,
         IReadOnlyList<ModifierModel> modifiers,
         string seed,
         GameMode gameMode,
+#if STS2_AT_LEAST_0_113_0
+        bool isCustomGame,
+#endif
         int ascensionLevel,
         DateTimeOffset? dailyTime,
         ref Task<RunState> __result)
@@ -45,14 +53,26 @@ internal static class RandomEarlyProgressPatch
 
         try
         {
+            // 0.113 起首个参数是 Player（0.111 是 CharacterModel）。
+#if STS2_AT_LEAST_0_113_0
+            var profileId = player?.Character is null
+                ? null
+                : RandomProfiles.ProfileOfCharacterTypeName(player.Character.GetType().Name);
+#else
             var profileId = character is null
                 ? null
                 : RandomProfiles.ProfileOfCharacterTypeName(character.GetType().Name);
+#endif
             if (profileId is null) return true;
             if (!RandomConfig.RandomStartingDeck) return true;
 
-            __result = StartAfterGeneration(__instance, character!, shouldSave, acts, modifiers, seed,
+#if STS2_AT_LEAST_0_113_0
+            __result = StartAfterGeneration(__instance, player, shouldSave, acts, modifiers, seed,
+                gameMode, isCustomGame, ascensionLevel, dailyTime);
+#else
+            __result = StartAfterGeneration(__instance, character, shouldSave, acts, modifiers, seed,
                 gameMode, ascensionLevel, dailyTime);
+#endif
             return false;
         }
         catch
@@ -63,12 +83,19 @@ internal static class RandomEarlyProgressPatch
 
     private static async Task<RunState> StartAfterGeneration(
         NGame game,
+#if STS2_AT_LEAST_0_113_0
+        Player player,
+#else
         CharacterModel character,
+#endif
         bool shouldSave,
         IReadOnlyList<ActModel> acts,
         IReadOnlyList<ModifierModel> modifiers,
         string seed,
         GameMode gameMode,
+#if STS2_AT_LEAST_0_113_0
+        bool isCustomGame,
+#endif
         int ascensionLevel,
         DateTimeOffset? dailyTime)
     {
@@ -76,6 +103,9 @@ internal static class RandomEarlyProgressPatch
         // ★ 2026-11-12 用户设置：只随机本局选中的角色。
         //   单人：只生成本地角色；多人：生成全部 profile（包含队友角色），
         //   避免队友卡池没生成导致异步错误。设置关闭时永远生成三个。
+#if STS2_AT_LEAST_0_113_0
+        var character = player.Character;
+#endif
         var localProfile = RandomProfiles.ProfileOfCharacterTypeName(character.GetType().Name);
         var multiplayer = RunManager.Instance?.NetService?.Type is NetGameType.Host or NetGameType.Client;
         IReadOnlyList<string> profiles = RandomConfig.OnlySelectedCharacters
@@ -187,8 +217,13 @@ internal static class RandomEarlyProgressPatch
         try
         {
             Interlocked.Increment(ref _callingOriginal);
+#if STS2_AT_LEAST_0_113_0
+            return await game.StartNewSingleplayerRun(player, shouldSave, acts, modifiers, seed,
+                gameMode, isCustomGame, ascensionLevel, dailyTime);
+#else
             return await game.StartNewSingleplayerRun(character, shouldSave, acts, modifiers, seed,
                 gameMode, ascensionLevel, dailyTime);
+#endif
         }
         finally
         {

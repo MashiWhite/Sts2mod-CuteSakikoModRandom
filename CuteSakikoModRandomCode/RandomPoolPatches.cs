@@ -234,9 +234,26 @@ internal static class RandomPoolCache
     private static readonly MethodInfo? InvalidateMethod =
         typeof(CardPoolModel).GetMethod("InvalidateCardCache", BindingFlags.Instance | BindingFlags.NonPublic);
 
+    // 0.107 没有 InvalidateCardCache，只有私有的 _allCards / _allCardIds 缓存字段。
+    private static readonly FieldInfo? AllCardsField =
+        typeof(CardPoolModel).GetField("_allCards", BindingFlags.Instance | BindingFlags.NonPublic);
+
+    private static readonly FieldInfo? AllCardIdsField =
+        typeof(CardPoolModel).GetField("_allCardIds", BindingFlags.Instance | BindingFlags.NonPublic);
+
     internal static void Refresh(CardPoolModel pool)
     {
-        try { InvalidateMethod?.Invoke(pool, null); }
+        try
+        {
+            if (InvalidateMethod != null)
+            {
+                InvalidateMethod.Invoke(pool, null);
+                return;
+            }
+
+            AllCardsField?.SetValue(pool, null);
+            AllCardIdsField?.SetValue(pool, null);
+        }
         catch (Exception exception)
         {
             Log.Warn($"[CuteSakikoModRandom] 刷新卡池缓存失败：{exception.Message}");

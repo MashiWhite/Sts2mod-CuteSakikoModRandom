@@ -11,15 +11,42 @@
         <Sts2Dir>E:/SteamLibrary/steamapps/common/Slay the Spire 2</Sts2Dir>
         <Sts2DataDir>$(Sts2Dir)/data_sts2_windows_x86_64</Sts2DataDir>
 
-        <!-- 工坊里的 AutoAnthony 0.3.156（比 GitHub 公开仓库新，以这份为准） -->
-        <AutoAnthonyDir>E:/SteamLibrary/steamapps/workshop/content/2868840/3786611028</AutoAnthonyDir>
+        <!-- 工坊里的 AutoAnthony（比 GitHub 公开仓库新，以这份为准）。
+             工坊目录缺失（未订阅 / 缓存被清）时回退到本仓库的 Release 构建，
+             并用下面的 WarnAutoAnthonySource 提示「不是工坊版本」。 -->
+        <AutoAnthonyDir Condition="'$(AutoAnthonyDir)' == '' AND Exists('E:/SteamLibrary/steamapps/workshop/content/2868840/3786611028/AutoAnthony.dll')">E:/SteamLibrary/steamapps/workshop/content/2868840/3786611028</AutoAnthonyDir>
+        <AutoAnthonyDir Condition="'$(AutoAnthonyDir)' == ''">$(MSBuildThisFileDirectory)..\..\..\repos\AutoAnthony\ChaosMode\bin\Release\net9.0</AutoAnthonyDir>
 
         <!-- 添加 Godot 可执行文件路径 -->
         <GodotPath>E:/SLJT2/anti/GODOT/Godot_v4.5.1-stable_mono_win64.exe</GodotPath>
 
         <!-- 模组输出目录 -->
         <ModsPath>$(Sts2Dir)/mods/</ModsPath>
+
+        <!-- ===== 三版本支持（0.107.1 / 0.111.0 / 0.113.0） ===== -->
+        <Sts2GameVersion Condition="'$(Sts2GameVersion)' == ''">0.113.0</Sts2GameVersion>
+        <CuteSakikoModDll Condition="'$(CuteSakikoModDll)' == ''">$(ModsPath)CuteSakikoMod\compat\$(Sts2GameVersion)\CuteSakikoMod.dll</CuteSakikoModDll>
+        <RitsuLibRuntimeDll Condition="'$(RitsuLibRuntimeDll)' == ''">$(ModsPath)RitsuLib\STS2-RitsuLib.dll</RitsuLibRuntimeDll>
+        <RitsuLibPackageVersion Condition="'$(RitsuLibPackageVersion)' == ''">0.6.11</RitsuLibPackageVersion>
+        <RitsuLibPackageId Condition="'$(RitsuLibPackageId)' == '' and $([MSBuild]::VersionGreaterThanOrEquals('$(Sts2GameVersion)', '0.113.0'))">STS2.RitsuLib</RitsuLibPackageId>
+        <RitsuLibPackageId Condition="'$(RitsuLibPackageId)' == '' and $([MSBuild]::VersionGreaterThanOrEquals('$(Sts2GameVersion)', '0.111.0'))">STS2.RitsuLib.Compat.0.111.0</RitsuLibPackageId>
+        <RitsuLibPackageId Condition="'$(RitsuLibPackageId)' == ''">STS2.RitsuLib.Compat.0.107.1</RitsuLibPackageId>
     </PropertyGroup>
+
+    <!-- 版本符号：业务代码用这些符号做 API 分叉 -->
+    <PropertyGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(Sts2GameVersion)', '0.113.0'))">
+        <DefineConstants>$(DefineConstants);STS2_AT_LEAST_0_113_0</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(Sts2GameVersion)', '0.111.0'))">
+        <DefineConstants>$(DefineConstants);CSK_GAME_111_OR_NEWER</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(Sts2GameVersion)', '0.108.0'))">
+        <DefineConstants>$(DefineConstants);CSK_GAME_108_OR_NEWER</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="loader/**" />
+    </ItemGroup>
 
     <ItemGroup>
         <Reference Include="sts2">
@@ -37,42 +64,69 @@
             <Private>false</Private>
         </Reference>
 
-        <!-- AutoAnthony 本体（工坊目录；0.3.156） -->
+        <!-- AutoAnthony 本体（由构建脚本按游戏版本传入） -->
         <Reference Include="AutoAnthony">
             <HintPath>$(AutoAnthonyDir)\AutoAnthony.dll</HintPath>
             <Private>false</Private>
         </Reference>
 
-        <!-- 可爱小祥本体（角色/卡池/关键词类型都从这里读） -->
+        <!-- 可爱小祥本体：必须引用 compat/<版本>/ 下的变体，不能引用根目录加载器 -->
         <Reference Include="CuteSakikoMod">
-            <HintPath>$(ModsPath)\CuteSakikoMod\CuteSakikoMod.dll</HintPath>
+            <HintPath>$(CuteSakikoModDll)</HintPath>
             <Private>false</Private>
         </Reference>
 
         <Reference Include="STS2-RitsuLib">
-            <HintPath>$(ModsPath)\RitsuLib\STS2-RitsuLib.dll</HintPath>
+            <HintPath>$(RitsuLibRuntimeDll)</HintPath>
             <Private>false</Private>
         </Reference>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="STS2.RitsuLib" Version="0.6.7" />
+        <PackageReference Include="$(RitsuLibPackageId)" Version="$(RitsuLibPackageVersion)" />
     </ItemGroup>
 
-    <!-- 自动复制 dll 和 json -->
-    <Target Name="CopyMod" AfterTargets="Build">
+    <!-- 0.113 下 RitsuLib 必须 0.6.11（0.6.7 的 Runtime 引用已删除的 SingletonModel，会 CS7069）。 -->
+    <Target Name="WarnAutoAnthonySource" BeforeTargets="CoreCompile">
+        <Warning Condition="!$([System.String]::Copy('$(AutoAnthonyDir)').Contains('3786611028'))"
+                 Text="AutoAnthonyDir 不是工坊目录：$(AutoAnthonyDir)（可编译，但生成行为可能与线上 AA 不一致）" />
+    </Target>
+
+    <!-- 自动复制 dll 和 json（mods 已是加载器结构时，裸构建不覆盖加载器） -->
+    <Target Name="CopyMod" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
+        <PropertyGroup>
+            <_RandomBundleDeployed Condition="Exists('$(ModsPath)CuteSakikoModRandom\csk-random-variants.manifest')">true</_RandomBundleDeployed>
+            <_RandomIsSingleDll Condition="'$(AssemblyName)' == '$(MSBuildProjectName)'">true</_RandomIsSingleDll>
+        </PropertyGroup>
+        <Warning Condition="'$(_RandomBundleDeployed)' == 'true' and '$(_RandomIsSingleDll)' == 'true'"
+                 Text="mods 里已是加载器结构，裸 dotnet build 不覆盖加载器；更新请用 tools\build-bundle.ps1。" />
         <Message Text="Copying mod DLL and JSON to $(ModsPath)" Importance="high" />
         <MakeDir Directories="$(ModsPath)$(MSBuildProjectName)" />
-        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(MSBuildProjectName)" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(MSBuildProjectName)"
+              Condition="'$(_RandomBundleDeployed)' != 'true' or '$(_RandomIsSingleDll)' != 'true'" />
         <Copy SourceFiles="$(MSBuildProjectName).json" DestinationFolder="$(ModsPath)$(MSBuildProjectName)" />
     </Target>
 
+    <!-- pck 两段式：Godot 孙进程在 DSH 沙箱里写不进游戏 mods（也写不进 Rider\**），
+         先导出到 $(PckStagingDir)，再由 MSBuild Copy 搬进 mods。
+         依据：提示词\通用\01-规范\调试与工具链.txt §3；本体 csproj 同款。 -->
+    <PropertyGroup>
+        <PckStagingDir Condition="'$(PckStagingDir)' == ''">E:\SLJT2\.build-check</PckStagingDir>
+    </PropertyGroup>
+
     <Target Name="BuildPck" AfterTargets="Build"
-            Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">
-        <Message Text="Exporting Godot .pck to mods folder (from Build)" Importance="high"/>
-        <Exec Command="&quot;$(GodotPath)&quot; --headless --export-pack &quot;Random&quot; &quot;$(ModsPath)$(MSBuildProjectName)/$(MSBuildProjectName).pck&quot;"
-              WorkingDirectory="$(MSBuildProjectDirectory)"
+            Condition="'$(SkipPck)' != 'true' and '$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">
+        <Message Text="Exporting Godot .pck to staging (from Build)" Importance="high"/>
+        <MakeDir Directories="$(PckStagingDir)"/>
+        <Exec Command="&quot;$(GodotPath)&quot; --headless --path &quot;$(MSBuildProjectDirectory)&quot; --export-pack &quot;Random&quot; &quot;$(PckStagingDir)\$(MSBuildProjectName).pck&quot;"
               EnvironmentVariables="IsInnerGodotExport=true;MSBUILDDISABLENODEREUSE=1"
               ContinueOnError="WarnAndContinue" />
+        <Copy SourceFiles="$(PckStagingDir)\$(MSBuildProjectName).pck"
+              DestinationFolder="$(ModsPath)$(MSBuildProjectName)"
+              Condition="Exists('$(PckStagingDir)\$(MSBuildProjectName).pck')"/>
+        <Message Text="Pck copied to $(ModsPath)$(MSBuildProjectName) via MSBuild." Importance="high"
+                 Condition="Exists('$(PckStagingDir)\$(MSBuildProjectName).pck')"/>
+        <Warning Text="pck staging failed; the mods folder keeps the previous pck."
+                 Condition="!Exists('$(PckStagingDir)\$(MSBuildProjectName).pck')"/>
     </Target>
 </Project>

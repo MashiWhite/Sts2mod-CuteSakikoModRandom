@@ -57,7 +57,16 @@ internal static class AaGenerationValuePatch
                 return;
             }
 
+            // AA 0.3.165 给这个重载加了第 5 个可选参数（baseEnergyCost），
+            // AccessTools 按参数个数精确匹配，所以先试 5 参、再退回 4 参（0.3.147）。
             var method = AccessTools.Method(type, "EstimatedPositiveCardValue", new[]
+            {
+                typeof(IReadOnlyList<GeneratorOperation>),
+                typeof(bool),
+                typeof(GeneratedCardType),
+                typeof(IReadOnlyCollection<CardTag>),
+                typeof(int?)
+            }) ?? AccessTools.Method(type, "EstimatedPositiveCardValue", new[]
             {
                 typeof(IReadOnlyList<GeneratorOperation>),
                 typeof(bool),
@@ -68,7 +77,7 @@ internal static class AaGenerationValuePatch
             if (method is null)
             {
                 Log.Warn("[CuteSakikoModRandom] AA 版本里找不到 "
-                         + "EstimatedPositiveCardValue(operations, bool, GeneratedCardType, tags)，"
+                         + "EstimatedPositiveCardValue(operations, bool, GeneratedCardType, tags[, baseEnergyCost])，"
                          + "整卡预算同步跳过（生成仍可用，只是不提前计价）。");
                 return;
             }

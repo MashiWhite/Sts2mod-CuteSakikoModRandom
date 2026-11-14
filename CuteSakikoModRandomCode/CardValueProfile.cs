@@ -10,7 +10,7 @@ internal readonly record struct ValueBand(double Low, double High, double Center
 
 /// <summary>
 /// P0 校准后的「本体卡同稀有度/同费用」目标带（2026-11-11）。
-/// 数据源：任务计划\P0目标价值表.md（254 张本体卡，208 有值，53 张人工校准）。
+/// 数据源：E:\SLJT2\任务计划\东尼算法\资料\P0目标价值表.md（254 张本体卡，208 有值，53 张人工校准）。
 ///
 /// 常规带 = 中位 ±25%；表里只存中位，带宽在 For() 里算。
 /// 费用 >4：按 4 费中位 + 每点 +5 VP 外推；X 费返回 null（不做目标带判断）。

@@ -521,7 +521,7 @@ public static class SakiComponents
         //   「只给 damage/block/draw/energy/heal」并不能消掉大数字（AA 会改抬唯一可缩放的伤害），
         //   而且会让芭菲/猫咪类原子在样本里消失。
         //   ⇒ 真正要改的是「估值按每单位 × 预算带收缩 + 组卡补第二个 payoff」，
-        //     单改这一处不够，所以先不动生产逻辑。详见 任务计划\原子VP对照表.md §4。
+        //     单改这一处不够，所以先不动生产逻辑。详见 E:\SLJT2\任务计划\东尼算法\资料\原子VP对照表.md §4。
         if (category is ComponentCategory.Resource or ComponentCategory.Defense
             && spec.Values.Count > 0
             && spec.Opcode != SakiComponents.ParfaitComboOpcode)

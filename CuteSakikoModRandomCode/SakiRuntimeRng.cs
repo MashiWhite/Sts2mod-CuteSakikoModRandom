@@ -1,4 +1,5 @@
 using AutoAnthony;
+using MegaCrit.Sts2.Core.Extensions;
 using MegaCrit.Sts2.Core.Random;
 
 namespace CuteSakikoModRandom.CuteSakikoModRandomCode;
@@ -29,7 +30,11 @@ internal static class SakiRuntimeRng
     internal static List<T> PickRandom<T>(IReadOnlyList<T> source, int count, Rng rng)
     {
         var pool = source.ToList();
-        rng.Shuffle(pool);
+        // 0.113 删除了 Rng.Shuffle<T>(IList<T>)（0.111 的 Rng.cs:209），
+        // 改用 MegaCrit.Sts2.Core.Extensions.ListExtensions.UnstableShuffle。
+        // 注意：它先取一次 rng.NextUnsignedLong() 造子 Rng，再 Fisher-Yates；
+        // 与 0.111 的「每次交换直接取 NextInt」消耗的随机数序列不同，但两端同版本仍一致。
+        pool.UnstableShuffle(rng);
         if (count < pool.Count)
             pool.RemoveRange(count, pool.Count - count);
         return pool;

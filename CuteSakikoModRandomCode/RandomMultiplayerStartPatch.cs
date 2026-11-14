@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoAnthony;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
@@ -41,6 +42,9 @@ internal static class RandomMultiplayerStartPatch
 
     private static bool Prefix(
         NGame __instance,
+#if STS2_AT_LEAST_0_113_0
+        List<Player> players,
+#endif
         StartRunLobby lobby,
         bool shouldSave,
         IReadOnlyList<ActModel> acts,
@@ -60,8 +64,12 @@ internal static class RandomMultiplayerStartPatch
             var profiles = ProfilesFor(lobby);
             if (profiles.Count == 0) return true;
 
-            __result = StartAfterGeneration(__instance, lobby, profiles, shouldSave, acts, modifiers,
-                seed, ascensionLevel, dailyTime);
+            __result = StartAfterGeneration(__instance,
+#if STS2_AT_LEAST_0_113_0
+                players,
+#endif
+                lobby, profiles, shouldSave, acts,
+                modifiers, seed, ascensionLevel, dailyTime);
             return false;
         }
         catch (Exception exception)
@@ -74,6 +82,9 @@ internal static class RandomMultiplayerStartPatch
 
     private static async Task<RunState> StartAfterGeneration(
         NGame game,
+#if STS2_AT_LEAST_0_113_0
+        List<Player> players,
+#endif
         StartRunLobby lobby,
         IReadOnlyList<string> profiles,
         bool shouldSave,
@@ -169,8 +180,13 @@ internal static class RandomMultiplayerStartPatch
         try
         {
             Interlocked.Increment(ref _callingOriginal);
+#if STS2_AT_LEAST_0_113_0
+            return await game.StartNewMultiplayerRun(players, lobby, shouldSave, acts, modifiers, seed,
+                ascensionLevel, dailyTime);
+#else
             return await game.StartNewMultiplayerRun(lobby, shouldSave, acts, modifiers, seed,
                 ascensionLevel, dailyTime);
+#endif
         }
         finally
         {
